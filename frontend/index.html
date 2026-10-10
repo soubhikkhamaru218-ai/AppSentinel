@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AppSentinel // Digital Scam Evidence Correlation Engine</title>
+    <meta name="description" content="AppSentinel connects messages, links, claimed identities, and application evidence to help you understand whether a digital request makes sense.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Tactical Tech Background Effects -->
+    <div class="background-effects">
+        <div class="bg-grid"></div>
+        <div class="bg-glow"></div>
+    </div>
+
+    <!-- Top HUD Status Ticker -->
+    <div class="hud-status-strip">
+        <div>
+            <span class="status-indicator-dot"></span>
+            <span id="hudSystemStatus">SYSTEM: CHECKING CONNECTIVITY...</span>
+        </div>
+        <div class="font-label hud-strip-right">
+            <span>RULE_SET: R1-R7 ACTIVE // INTEGRATIONS: MOBSF &bull; ANDROGUARD &bull; URLSCAN &bull; VT</span>
+        </div>
+    </div>
+
+    <!-- HUD Site Navigation -->
+    <nav class="site-nav" id="siteNav">
+        <div class="nav-container">
+            <div class="logo" onclick="switchView('home')" style="cursor:pointer;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"></path>
+                    <path d="M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 1 0 -6 0"></path>
+                </svg>
+                <span>AppSentinel</span>
+                <span class="logo-badge">SEC_OPS</span>
+            </div>
+
+            <div class="nav-links" id="mainNavLinks">
+                <button class="nav-tab-btn active" data-view="home" onclick="switchView('home')">Overview</button>
+                <button class="nav-tab-btn" data-view="scan-url" onclick="switchView('scan-url')">URL Scanner</button>
+                <button class="nav-tab-btn" data-view="scan-message" onclick="switchView('scan-message')">Message Scanner</button>
+                <button class="nav-tab-btn" data-view="scan-apk" onclick="switchView('scan-apk')">APK Analyser</button>
+                <button class="nav-tab-btn" data-view="rules" onclick="switchView('rules')">Rules Matrix</button>
+            </div>
+
+            <div class="nav-actions">
+                <button class="btn btn-primary" onclick="scrollToAnalyzers()">Analyze Request</button>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- ===================================================================
+             VIEW 1: OVERVIEW / LANDING (Single Scrollable Page)
+             =================================================================== -->
+        <div id="view-home" class="view-section active-view">
+
+            <!-- HERO -->
+            <section class="hero">
+                <div class="hero-container">
+                    <div class="hero-content scroll-reveal" data-sr="fade-right">
+                        <div class="hero-badge">Advanced Security Analysis</div>
+                        <h1 class="cyber-glitch" data-text="Verify Suspicious Digital Requests.">Verify Suspicious<br>Digital Requests.</h1>
+                        <p>AppSentinel connects messages, links, claimed identities, and application evidence to help you understand whether a digital request makes sense.</p>
+                        <div class="hero-cta">
+                            <button onclick="scrollToAnalyzers()" class="btn btn-glitch btn-large">Analyze a Request</button>
+                            <a href="#how-it-works" class="btn btn-secondary btn-large">See How It Works</a>
+                        </div>
+                    </div>
+                    <div class="hero-visual scroll-reveal" data-sr="fade-left" data-sr-delay="200">
+                        <div class="evidence-visualization" id="heroVisualization">
+                            <svg viewBox="0 0 800 800" class="hero-svg" preserveAspectRatio="xMidYMid meet">
+                                <defs>
+                                    <radialGradient id="engineGlow" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stop-color="rgba(0, 255, 136, 0.25)" />
+                                        <stop offset="100%" stop-color="rgba(0, 255, 136, 0)" />
+                                    </radialGradient>
+                                    <linearGradient id="lineGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="rgba(0, 255, 136, 0.1)" />
+                                        <stop offset="100%" stop-color="rgba(0, 255, 136, 0.9)" />
+                                    </linearGradient>
+                                    <linearGradient id="lineGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="rgba(0, 212, 255, 0.1)" />
+                                        <stop offset="100%" stop-color="rgba(0, 212, 255, 0.9)" />
+                                    </linearGradient>
+                                    <linearGradient id="lineGrad3" x1="100%" y1="100%" x2="0%" y2="0%">
+                                        <stop offset="0%" stop-color="rgba(255, 0, 255, 0.1)" />
+                                        <stop offset="100%" stop-color="rgba(255, 0, 255, 0.9)" />
+                                    </linearGradient>
+                                    <linearGradient id="lineGrad4" x1="0%" y1="100%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="rgba(255, 170, 0, 0.1)" />
+                                        <stop offset="100%" stop-color="rgba(255, 170, 0, 0.9)" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="400" cy="400" r="300" fill="none" stroke="rgba(0,255,136,0.06)" stroke-width="1" stroke-dasharray="4 8"/>
+                                <circle cx="400" cy="400" r="200" fill="none" stroke="rgba(0,255,136,0.08)" stroke-width="1"/>
+                                <circle cx="400" cy="400" r="100" fill="none" stroke="rgba(0,255,136,0.12)" stroke-width="1"/>
+                                <path class="connection-path path-message" d="M 400 120 L 400 300" stroke="url(#lineGrad1)" stroke-width="2.5" fill="none" stroke-dasharray="200" stroke-dashoffset="200"/>
+                                <path class="connection-path path-url" d="M 680 400 L 500 400" stroke="url(#lineGrad2)" stroke-width="2.5" fill="none" stroke-dasharray="200" stroke-dashoffset="200"/>
+                                <path class="connection-path path-identity" d="M 400 680 L 400 500" stroke="url(#lineGrad3)" stroke-width="2.5" fill="none" stroke-dasharray="200" stroke-dashoffset="200"/>
+                                <path class="connection-path path-apk" d="M 120 400 L 300 400" stroke="url(#lineGrad4)" stroke-width="2.5" fill="none" stroke-dasharray="200" stroke-dashoffset="200"/>
+                                <g class="central-engine">
+                                    <circle cx="400" cy="400" r="150" fill="url(#engineGlow)"/>
+                                    <rect x="270" y="335" width="260" height="130" rx="4" fill="#0c0c14" stroke="#00ff88" stroke-width="2" class="engine-box"/>
+                                    <text x="400" y="380" fill="#ffffff" font-size="16" font-family="'Orbitron', monospace" font-weight="800" text-anchor="middle" letter-spacing="2">APPSENTINEL</text>
+                                    <text x="400" y="408" fill="#00d4ff" font-size="12" font-family="'Share Tech Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="1">VERIFICATION ENGINE</text>
+                                    <text class="engine-status" x="400" y="435" fill="#00ff88" font-size="12" font-family="'JetBrains Mono', monospace" text-anchor="middle">Awaiting evidence</text>
+                                    <circle cx="400" cy="400" r="110" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-dasharray="8 8" class="engine-ring"/>
+                                </g>
+                                <g class="evidence-node node-message" transform="translate(400, 100)">
+                                    <rect x="-105" y="-32" width="210" height="64" rx="2" fill="#111827" stroke="#00ff88" stroke-width="1.5"/>
+                                    <text x="0" y="-5" fill="#ffffff" font-size="13" font-family="'Orbitron', monospace" font-weight="700" text-anchor="middle">MESSAGE</text>
+                                    <text x="0" y="16" fill="#00ff88" font-size="11" font-family="'JetBrains Mono', monospace" text-anchor="middle">"Urgent account action"</text>
+                                </g>
+                                <g class="evidence-node node-url" transform="translate(700, 400)">
+                                    <rect x="-105" y="-32" width="210" height="64" rx="2" fill="#111827" stroke="#00d4ff" stroke-width="1.5"/>
+                                    <text x="0" y="-5" fill="#ffffff" font-size="13" font-family="'Orbitron', monospace" font-weight="700" text-anchor="middle">URL</text>
+                                    <text x="0" y="16" fill="#00d4ff" font-size="11" font-family="'JetBrains Mono', monospace" text-anchor="middle">"example-login.com"</text>
+                                </g>
+                                <g class="evidence-node node-identity" transform="translate(400, 700)">
+                                    <rect x="-105" y="-32" width="210" height="64" rx="2" fill="#111827" stroke="#ff00ff" stroke-width="1.5"/>
+                                    <text x="0" y="-5" fill="#ffffff" font-size="13" font-family="'Orbitron', monospace" font-weight="700" text-anchor="middle">IDENTITY</text>
+                                    <text x="0" y="16" fill="#ff00ff" font-size="11" font-family="'JetBrains Mono', monospace" text-anchor="middle">"Claimed organization"</text>
+                                </g>
+                                <g class="evidence-node node-apk" transform="translate(100, 400)">
+                                    <rect x="-105" y="-32" width="210" height="64" rx="2" fill="#111827" stroke="#ffaa00" stroke-width="1.5"/>
+                                    <text x="0" y="-5" fill="#ffffff" font-size="13" font-family="'Orbitron', monospace" font-weight="700" text-anchor="middle">APPLICATION</text>
+                                    <text x="0" y="16" fill="#ffaa00" font-size="11" font-family="'JetBrains Mono', monospace" text-anchor="middle">"Application evidence"</text>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TRUST STRIP -->
+            <section class="trust-strip">
+                <div class="trust-container">
+                    <div class="trust-item scroll-reveal" data-sr="fade-up">🔍 Evidence-based</div>
+                    <div class="trust-dot scroll-reveal" data-sr="fade-up" data-sr-delay="100">&bull;</div>
+                    <div class="trust-item scroll-reveal" data-sr="fade-up" data-sr-delay="150">📖 Explainable</div>
+                    <div class="trust-dot scroll-reveal" data-sr="fade-up" data-sr-delay="200">&bull;</div>
+                    <div class="trust-item scroll-reveal" data-sr="fade-up" data-sr-delay="250">🛡️ Privacy-conscious</div>
+                    <div class="trust-dot scroll-reveal" data-sr="fade-up" data-sr-delay="300">&bull;</div>
+                    <div class="trust-item scroll-reveal" data-sr="fade-up" data-sr-delay="350">⚖️ Uncertainty-aware</div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 CHOOSE YOUR ANALYZER — 3 Big Cyberpunk Cards
+                 ============================================================ -->
+            <section class="analyzer-picker-section" id="analyzers">
+                <div class="container text-center">
+                    <div class="hero-badge" style="margin: 0 auto 1.5rem;">Select Analysis Vector</div>
+                    <h2 class="huge-text scroll-reveal" data-sr="fade-up">Choose your<br>analysis module.</h2>
+                    <p style="margin: 0 auto 3.5rem; max-width: 55ch;" class="scroll-reveal" data-sr="fade-up" data-sr-delay="120">
+                        Each module is a specialized analysis pipeline. Pick the one that matches the evidence you have.
+                    </p>
+
+                    <div class="analyzer-cards-grid">
+                        <!-- Card 1: Message Analyzer -->
+                        <div class="analyzer-card scroll-reveal" data-sr="fade-up" data-sr-delay="100" onclick="switchView('scan-message')">
+                            <div class="ac-icon-ring ac-green">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                            </div>
+                            <h3>Message Analyzer</h3>
+                            <p>Paste any suspicious SMS, WhatsApp, email, or Telegram message. Detects urgency language, credential harvesting, financial coercion & social engineering patterns.</p>
+                            <div class="ac-tags">
+                                <span class="ac-tag ac-tag-green">NLP Signals</span>
+                                <span class="ac-tag ac-tag-green">Identity Cross-Check</span>
+                            </div>
+                            <div class="ac-launch-bar">
+                                <span class="ac-launch-text">LAUNCH MODULE</span>
+                                <span class="ac-launch-arrow">&rarr;</span>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: URL Scanner -->
+                        <div class="analyzer-card scroll-reveal" data-sr="fade-up" data-sr-delay="250" onclick="switchView('scan-url')">
+                            <div class="ac-icon-ring ac-cyan">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                            </div>
+                            <h3>URL Scanner</h3>
+                            <p>Submit a suspicious link or domain. Checks hosting, DNS age, SSL certificates, phishing indicators & cross-references with urlscan.io and VirusTotal databases.</p>
+                            <div class="ac-tags">
+                                <span class="ac-tag ac-tag-cyan">Domain Intel</span>
+                                <span class="ac-tag ac-tag-cyan">Phishing Detection</span>
+                            </div>
+                            <div class="ac-launch-bar">
+                                <span class="ac-launch-text">LAUNCH MODULE</span>
+                                <span class="ac-launch-arrow">&rarr;</span>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: APK Analyzer -->
+                        <div class="analyzer-card scroll-reveal" data-sr="fade-up" data-sr-delay="400" onclick="switchView('scan-apk')">
+                            <div class="ac-icon-ring ac-magenta">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><path d="M10 12h4"/></svg>
+                            </div>
+                            <h3>APK Analyzer</h3>
+                            <p>Upload an Android APK file for static analysis. Inspects manifest permissions, DEX bytecode, package signatures & certificate trust chain via MobSF and Androguard.</p>
+                            <div class="ac-tags">
+                                <span class="ac-tag ac-tag-magenta">MobSF Static Scan</span>
+                                <span class="ac-tag ac-tag-magenta">Androguard DEX</span>
+                            </div>
+                            <div class="ac-launch-bar">
+                                <span class="ac-launch-text">LAUNCH MODULE</span>
+                                <span class="ac-launch-arrow">&rarr;</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CORRELATION SECTION -->
+            <section class="transition-section" id="correlation">
+                <div class="container text-center">
+                    <h2 class="huge-text scroll-reveal" data-sr="fade-up">One signal rarely tells<br>the whole story.</h2>
+                    <div class="fragments-container">
+                        <div class="fragment fragment-msg scroll-reveal" data-sr="zoom-in" data-sr-delay="100">MESSAGE</div>
+                        <div class="fragment fragment-url scroll-reveal" data-sr="zoom-in" data-sr-delay="200">URL</div>
+                        <div class="fragment fragment-id scroll-reveal" data-sr="zoom-in" data-sr-delay="300">IDENTITY</div>
+                        <div class="fragment fragment-app scroll-reveal" data-sr="zoom-in" data-sr-delay="400">APPLICATION</div>
+                    </div>
+                    <div class="correlation-flow">
+                        <div class="arrow-down scroll-reveal" data-sr="fade-up" data-sr-delay="500">&darr;</div>
+                        <div class="correlation-text scroll-reveal" data-sr="zoom-in" data-sr-delay="600">CORRELATION</div>
+                        <div class="arrow-down scroll-reveal" data-sr="fade-up" data-sr-delay="700">&darr;</div>
+                        <div class="understand-text scroll-reveal" data-sr="fade-up" data-sr-delay="800">UNDERSTAND THE REQUEST</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- HOW IT WORKS -->
+            <section class="how-it-works" id="how-it-works">
+                <div class="container">
+                    <h2 class="section-heading scroll-reveal" data-sr="fade-up">From suspicious request<br>to understandable evidence.</h2>
+                    <div class="story-sequence">
+                        <div class="story-step scroll-reveal" data-sr="fade-up" data-sr-delay="100">
+                            <div class="step-number">01</div>
+                            <div class="step-content">
+                                <h3>COLLECT</h3>
+                                <p>We gather available signals across multiple vectors simultaneously.</p>
+                                <ul class="evidence-list"><li>Message</li><li>URL</li><li>Identity</li><li>Application</li></ul>
+                            </div>
+                        </div>
+                        <div class="story-step scroll-reveal" data-sr="fade-up" data-sr-delay="250">
+                            <div class="step-number">02</div>
+                            <div class="step-content">
+                                <h3>ANALYZE</h3>
+                                <p>Specialized analysis produces individual findings for each piece of evidence without making assumptions.</p>
+                            </div>
+                        </div>
+                        <div class="story-step scroll-reveal" data-sr="fade-up" data-sr-delay="400">
+                            <div class="step-number">03</div>
+                            <div class="step-content">
+                                <h3>CORRELATE</h3>
+                                <p>Findings are connected to identify supporting evidence, contradictions, and structural uncertainty.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- EVIDENCE GRAPH -->
+            <section class="evidence-graph-section">
+                <div class="container">
+                    <div class="graph-layout">
+                        <div class="graph-text scroll-reveal" data-sr="fade-right">
+                            <h2>Every piece of evidence is interconnected.</h2>
+                            <p>AppSentinel does not rely on one piece of evidence. It builds a graph of context to ensure no detail is overlooked.</p>
+                        </div>
+                        <div class="graph-visual scroll-reveal" data-sr="fade-left" data-sr-delay="200">
+                            <div class="eg-center">REQUEST</div>
+                            <div class="eg-branch msg-branch"><div class="eg-node primary">Message</div><div class="eg-node secondary">urgency</div><div class="eg-node secondary">payment request</div><div class="eg-node secondary">suspicious action</div></div>
+                            <div class="eg-branch url-branch"><div class="eg-node primary">URL</div><div class="eg-node secondary">domain</div><div class="eg-node secondary">URL structure</div></div>
+                            <div class="eg-branch id-branch"><div class="eg-node primary">Identity</div><div class="eg-node secondary">claimed organization</div><div class="eg-node secondary">consistency</div></div>
+                            <div class="eg-branch app-branch"><div class="eg-node primary">APK</div><div class="eg-node secondary">package</div><div class="eg-node secondary">permissions</div><div class="eg-node secondary">signing</div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADVANTAGE COMPARISON -->
+            <section class="why-appsentinel">
+                <div class="container">
+                    <h2 class="text-center scroll-reveal" data-sr="fade-up" style="margin-bottom: 3rem;">The AppSentinel Advantage</h2>
+                    <div class="comparison-container">
+                        <div class="comparison-side traditional scroll-reveal" data-sr="fade-right">
+                            <h3>Traditional isolated checks</h3>
+                            <div class="comp-flow">
+                                <div class="comp-row"><span>MESSAGE</span> <span class="arrow">&rarr;</span> <span class="check">message check</span></div>
+                                <div class="comp-row"><span>URL</span> <span class="arrow">&rarr;</span> <span class="check">URL check</span></div>
+                                <div class="comp-row"><span>APK</span> <span class="arrow">&rarr;</span> <span class="check">APK scan</span></div>
+                            </div>
+                        </div>
+                        <div class="comparison-divider scroll-reveal" data-sr="zoom-in" data-sr-delay="200">VS</div>
+                        <div class="comparison-side appsentinel-way scroll-reveal" data-sr="fade-left" data-sr-delay="300">
+                            <h3>AppSentinel</h3>
+                            <div class="comp-flow-unified">
+                                <div class="unified-top"><span>MESSAGE</span><span class="plus">+</span><span>URL</span><span class="plus">+</span><span>IDENTITY</span><span class="plus">+</span><span>APK</span></div>
+                                <div class="arrow-down">&darr;</div>
+                                <div class="unified-core">CORRELATION</div>
+                                <div class="arrow-down">&darr;</div>
+                                <div class="unified-result">A clearer picture of the request</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TRANSPARENCY / UNCERTAINTY -->
+            <section class="uncertainty-section" id="transparency">
+                <div class="container text-center">
+                    <h2 class="huge-text scroll-reveal" data-sr="fade-up">Good security doesn't pretend<br>to know what it doesn't know.</h2>
+                    <div class="truth-cards">
+                        <div class="truth-card scroll-reveal" data-sr="fade-up" data-sr-delay="100">
+                            <div class="tc-header">Evidence</div>
+                            <div class="tc-body">What was actually observed in the request metadata and contents.</div>
+                        </div>
+                        <div class="truth-card scroll-reveal" data-sr="fade-up" data-sr-delay="250">
+                            <div class="tc-header">Inference</div>
+                            <div class="tc-body">What the combined evidence strongly suggests about the request.</div>
+                        </div>
+                        <div class="truth-card scroll-reveal" data-sr="fade-up" data-sr-delay="400">
+                            <div class="tc-header">Uncertainty</div>
+                            <div class="tc-body">What cannot currently be established or verified with absolute confidence.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SAFETY PRINCIPLES -->
+            <section class="safety-section">
+                <div class="container text-center">
+                    <h2 class="scroll-reveal" data-sr="fade-up" style="margin-bottom: 3rem;">Security should be understandable.</h2>
+                    <div class="safety-grid">
+                        <div class="safety-item scroll-reveal" data-sr="fade-up" data-sr-delay="100"><div class="icon">🔎</div><h4>Evidence First</h4></div>
+                        <div class="safety-item scroll-reveal" data-sr="fade-up" data-sr-delay="200"><div class="icon">💬</div><h4>Explainable</h4></div>
+                        <div class="safety-item scroll-reveal" data-sr="fade-up" data-sr-delay="300"><div class="icon">🔒</div><h4>Privacy-conscious</h4></div>
+                        <div class="safety-item scroll-reveal" data-sr="fade-up" data-sr-delay="400"><div class="icon">⚖️</div><h4>Honest about limitations</h4></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FINAL CTA -->
+            <section class="final-cta" id="analyze">
+                <div class="container text-center scroll-reveal" data-sr="fade-up">
+                    <h2>Have a suspicious request?</h2>
+                    <p>Bring the available evidence together and understand what you're dealing with.</p>
+                    <div class="flowing-line"></div>
+                    <button onclick="scrollToAnalyzers()" class="btn btn-glitch btn-xl">Choose Your Analyzer</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- ===================================================================
+             VIEW 2: MESSAGE ANALYZER
+             =================================================================== -->
+        <div id="view-scan-message" class="view-section">
+            <div class="container">
+                <!-- Back button -->
+                <button class="btn btn-ghost scan-back-btn" onclick="switchView('home')">
+                    &larr; BACK TO OVERVIEW
+                </button>
+
+                <div class="terminal-window hud-corner">
+                    <div class="terminal-header">
+                        <div class="terminal-dots"><div class="dot-red"></div><div class="dot-yellow"></div><div class="dot-green"></div><span style="margin-left: 8px;">TERMINAL // MESSAGE_ANALYZER</span></div>
+                        <div>MODULE 01 // SOCIAL ENGINEERING DETECTION</div>
+                    </div>
+                    <div class="terminal-body">
+                        <form id="scanFormMessage" onsubmit="handleScanSubmit(event, 'message')">
+                            <div class="scan-console-layout">
+                                <div>
+                                    <!-- Message Text -->
+                                    <div class="cyber-input-group">
+                                        <label class="cyber-label" for="msgScanMessage">
+                                            <span>[01] SUSPICIOUS MESSAGE CONTENT <strong class="text-accent">*REQUIRED</strong></span>
+                                            <span id="msgCharCount" class="text-muted">0 chars</span>
+                                        </label>
+                                        <div class="cyber-input-wrapper">
+                                            <div class="cyber-input-prefix">&gt;</div>
+                                            <textarea id="msgScanMessage" class="cyber-textarea" placeholder="Paste the exact SMS, WhatsApp, email, or Telegram text message received..." required oninput="handleMessageInput(this.value, 'msg')"></textarea>
+                                        </div>
+                                    </div>
+                                    <!-- Claimed Identity -->
+                                    <div class="cyber-input-group">
+                                        <label class="cyber-label" for="msgScanIdentity"><span>[02] CLAIMED ORGANIZATION / SENDER <span class="text-muted">(OPTIONAL)</span></span></label>
+                                        <div class="cyber-input-wrapper">
+                                            <div class="cyber-input-prefix">&gt;</div>
+                                            <input type="text" id="msgScanIdentity" class="cyber-input" placeholder="e.g. Chase Bank, DHL Express, Netflix, Apple">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Signal Radar -->
+                                <div>
+                                    <div class="signal-radar-panel">
+                                        <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                                            <h4 style="color: var(--accent); font-size: 0.95rem;">SIGNAL DETECTION RADAR</h4>
+                                            <p style="font-size: 0.8rem; color: var(--muted-foreground); margin: 0;">Real-time token extraction from message content.</p>
+                                        </div>
+                                        <div class="radar-signal-item"><span>URGENCY / DEADLINE</span><span class="signal-tag inactive" id="msgSigUrgency">NOT DETECTED</span></div>
+                                        <div class="radar-signal-item"><span>ACCOUNT / LEGAL THREAT</span><span class="signal-tag inactive" id="msgSigThreat">NOT DETECTED</span></div>
+                                        <div class="radar-signal-item"><span>OTP / CREDENTIAL DEMAND</span><span class="signal-tag inactive" id="msgSigOtp">NOT DETECTED</span></div>
+                                        <div class="radar-signal-item"><span>FINANCIAL TRANSFER</span><span class="signal-tag inactive" id="msgSigFinancial">NOT DETECTED</span></div>
+                                        <div class="radar-signal-item"><span>APK / SIDE-LOAD</span><span class="signal-tag inactive" id="msgSigInstall">NOT DETECTED</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="scan-submit-bar">
+                                <button type="submit" class="btn btn-glitch btn-large">▶ ANALYZE MESSAGE</button>
+                                <button type="button" class="btn btn-ghost" onclick="resetForm('scanFormMessage')">CLEAR</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW 3: URL SCANNER
+             =================================================================== -->
+        <div id="view-scan-url" class="view-section">
+            <div class="container">
+                <button class="btn btn-ghost scan-back-btn" onclick="switchView('home')">&larr; BACK TO OVERVIEW</button>
+                <div class="terminal-window hud-corner">
+                    <div class="terminal-header">
+                        <div class="terminal-dots"><div class="dot-red"></div><div class="dot-yellow"></div><div class="dot-green"></div><span style="margin-left: 8px;">TERMINAL // URL_SCANNER</span></div>
+                        <div>MODULE 02 // PHISHING & DOMAIN INTEL</div>
+                    </div>
+                    <div class="terminal-body">
+                        <form id="scanFormUrl" onsubmit="handleScanSubmit(event, 'url')">
+                            <div class="scan-console-layout">
+                                <div>
+                                    <!-- URL Input -->
+                                    <div class="cyber-input-group">
+                                        <label class="cyber-label" for="urlScanUrl">
+                                            <span>[01] SUSPICIOUS URL / DOMAIN <strong class="text-accent">*REQUIRED</strong></span>
+                                        </label>
+                                        <div class="cyber-input-wrapper">
+                                            <div class="cyber-input-prefix">&gt;</div>
+                                            <input type="text" id="urlScanUrl" class="cyber-input" placeholder="https://example-security-update.com/login" required>
+                                        </div>
+                                    </div>
+                                    <!-- Claimed Identity -->
+                                    <div class="cyber-input-group">
+                                        <label class="cyber-label" for="urlScanIdentity"><span>[02] CLAIMED ORGANIZATION <span class="text-muted">(OPTIONAL)</span></span></label>
+                                        <div class="cyber-input-wrapper">
+                                            <div class="cyber-input-prefix">&gt;</div>
+                                            <input type="text" id="urlScanIdentity" class="cyber-input" placeholder="e.g. State Bank of India, PayPal, Amazon">
+                                        </div>
+                                    </div>
+                                    <!-- Context Message -->
+                                    <div class="cyber-input-group">
+                                        <label class="cyber-label" for="urlScanContext"><span>[03] CONTEXT MESSAGE <span class="text-muted">(OPTIONAL)</span></span></label>
+                                        <div class="cyber-input-wrapper">
+                                            <div class="cyber-input-prefix">&gt;</div>
+                                            <textarea id="urlScanContext" class="cyber-textarea" placeholder="Any surrounding message text where this link appeared..." style="min-height: 80px;"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="signal-radar-panel">
+                                        <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                                            <h4 style="color: var(--accent-tertiary); font-size: 0.95rem;">URL INSPECTION PREVIEW</h4>
+                                            <p style="font-size: 0.8rem; color: var(--muted-foreground); margin: 0;">Pre-flight domain analysis.</p>
+                                        </div>
+                                        <div class="radar-signal-item"><span>DOMAIN EXTRACTED</span><span class="signal-tag inactive" id="urlSigDomain">—</span></div>
+                                        <div class="radar-signal-item"><span>PROTOCOL</span><span class="signal-tag inactive" id="urlSigProtocol">—</span></div>
+                                        <div class="radar-signal-item"><span>SUSPICIOUS KEYWORDS</span><span class="signal-tag inactive" id="urlSigKeywords">NOT DETECTED</span></div>
+                                        <div class="radar-signal-item"><span>PATH DEPTH</span><span class="signal-tag inactive" id="urlSigPath">—</span></div>
+                                        <div style="background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.3); padding: 0.85rem; clip-path: var(--chamfer-clip-sm); font-size: 0.8rem; line-height: 1.6; color: var(--muted-foreground); margin-top: 0.5rem;">
+                                            <strong style="color: var(--accent-tertiary);">NOTE:</strong> Submitted URLs may be sent to urlscan.io and VirusTotal for reputation analysis. Do not submit private internal URLs.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="scan-submit-bar">
+                                <button type="submit" class="btn btn-glitch btn-large" style="--accent: var(--accent-tertiary); border-color: var(--accent-tertiary); background: var(--accent-tertiary); box-shadow: var(--box-shadow-neon-tertiary);">▶ SCAN URL</button>
+                                <button type="button" class="btn btn-ghost" onclick="resetForm('scanFormUrl')">CLEAR</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW 4: APK ANALYZER
+             =================================================================== -->
+        <div id="view-scan-apk" class="view-section">
+            <div class="container">
+                <button class="btn btn-ghost scan-back-btn" onclick="switchView('home')">&larr; BACK TO OVERVIEW</button>
+                <div class="terminal-window hud-corner">
+                    <div class="terminal-header">
+                        <div class="terminal-dots"><div class="dot-red"></div><div class="dot-yellow"></div><div class="dot-green"></div><span style="margin-left: 8px;">TERMINAL // APK_STATIC_ANALYZER</span></div>
+                        <div>MODULE 03 // MOBSF &amp; ANDROGUARD</div>
+                    </div>
+                    <div class="terminal-body">
+                        <form id="scanFormApk" onsubmit="handleScanSubmit(event, 'apk')">
+                            <div class="scan-console-layout">
+                                <div>
+                                    <!-- APK Upload -->
+                                    <div class="cyber-input-group">
+                                        <label class="cyber-label"><span>[01] ANDROID APK PACKAGE <strong class="text-accent">*REQUIRED</strong></span></label>
+                                        <div class="cyber-dropzone" id="apkDropzone">
+                                            <input type="file" id="apkFileInput" accept=".apk" onchange="handleApkSelect(event)">
+                                            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📦</div>
+                                            <div style="font-family: var(--font-heading); color: #ffffff; margin-bottom: 0.35rem; font-size: 1rem;">DRAG & DROP APK HERE</div>
+                                            <div style="font-size: 0.8rem; color: var(--muted-foreground);">Static manifest + DEX analysis only. APKs are NEVER executed. Max: 100MB</div>
+                                        </div>
+                                        <div class="file-selected-badge" id="fileSelectedBadge">
+                                            <span id="selectedFileName">package.apk</span>
+                                            <span style="cursor: pointer; color: var(--destructive);" onclick="removeSelectedApk()">✕ REMOVE</span>
+                                        </div>
+                                    </div>
+                                    <!-- Claimed Identity -->
+                                    <div class="cyber-input-group">
+                                        <label class="cyber-label" for="apkScanIdentity"><span>[02] CLAIMED ORGANIZATION <span class="text-muted">(OPTIONAL)</span></span></label>
+                                        <div class="cyber-input-wrapper">
+                                            <div class="cyber-input-prefix">&gt;</div>
+                                            <input type="text" id="apkScanIdentity" class="cyber-input" placeholder="e.g. State Bank, HDFC, Paytm">
+                                        </div>
+                                    </div>
+                                    <!-- Context Message -->
+                                    <div class="cyber-input-group">
+                                        <label class="cyber-label" for="apkScanContext"><span>[03] CONTEXT MESSAGE <span class="text-muted">(OPTIONAL)</span></span></label>
+                                        <div class="cyber-input-wrapper">
+                                            <div class="cyber-input-prefix">&gt;</div>
+                                            <textarea id="apkScanContext" class="cyber-textarea" placeholder="Any message that accompanied this APK file..." style="min-height: 80px;"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="signal-radar-panel">
+                                        <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                                            <h4 style="color: var(--accent-secondary); font-size: 0.95rem;">APK PREFLIGHT CHECK</h4>
+                                            <p style="font-size: 0.8rem; color: var(--muted-foreground); margin: 0;">File metadata preview.</p>
+                                        </div>
+                                        <div class="radar-signal-item"><span>FILE NAME</span><span class="signal-tag inactive" id="apkSigName">—</span></div>
+                                        <div class="radar-signal-item"><span>FILE SIZE</span><span class="signal-tag inactive" id="apkSigSize">—</span></div>
+                                        <div class="radar-signal-item"><span>SHA-256 (PARTIAL)</span><span class="signal-tag inactive" id="apkSigHash">—</span></div>
+                                        <div class="radar-signal-item"><span>FILE STATUS</span><span class="signal-tag inactive" id="apkSigStatus">AWAITING UPLOAD</span></div>
+                                        <div style="background: rgba(255, 0, 255, 0.06); border: 1px solid rgba(255, 0, 255, 0.3); padding: 0.85rem; clip-path: var(--chamfer-clip-sm); font-size: 0.8rem; line-height: 1.6; color: var(--muted-foreground); margin-top: 0.5rem;">
+                                            <strong style="color: var(--accent-secondary);">SECURITY:</strong> APKs undergo static inspection only. No dynamic execution occurs. Files are analyzed locally and never stored.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="scan-submit-bar">
+                                <button type="submit" class="btn btn-glitch btn-large" style="--accent: var(--accent-secondary); border-color: var(--accent-secondary); background: var(--accent-secondary); box-shadow: var(--box-shadow-neon-secondary);">▶ ANALYZE APK</button>
+                                <button type="button" class="btn btn-ghost" onclick="resetForm('scanFormApk'); removeSelectedApk();">CLEAR</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW 5: LIVE PIPELINE HUD
+             =================================================================== -->
+        <div id="view-pipeline" class="view-section">
+            <div class="container">
+                <div class="pipeline-hud-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 style="font-size: 1.5rem; color: var(--accent); margin-bottom: 0.25rem;">CORRELATION PIPELINE EXECUTING...</h2>
+                            <p style="font-size: 0.85rem; color: var(--muted-foreground); margin: 0;">Multi-vector normalization and relationship graph construction.</p>
+                        </div>
+                        <div class="font-label text-accent" id="pipelineTimer">T+ 0.00s</div>
+                    </div>
+                    <div class="pipeline-steps" id="pipelineStepsContainer">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <div class="terminal-log-output" id="pipelineLogOutput">[0.00s] SYSTEM: Initiating evidence intake protocol...<br></div>
+                    
+                    <!-- PIPELINE ERROR CARD (SHOWN ON BACKEND FAILURE / TIMEOUT) -->
+                    <div id="pipelineErrorCard" class="pipeline-error-card" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.6rem;">⚠️</span>
+                            <div>
+                                <h3 style="color: var(--destructive); margin: 0; font-size: 1.15rem;" id="pipelineErrorTitle">Scan Request Failed</h3>
+                                <p style="margin: 0; font-size: 0.82rem; color: var(--muted-foreground);" id="pipelineErrorSubtitle">The backend service could not complete the analysis.</p>
+                            </div>
+                        </div>
+                        <div style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); padding: 0.85rem; font-family: var(--font-body); font-size: 0.85rem; color: #ff8888; margin-bottom: 1rem; border-radius: 3px;" id="pipelineErrorMessage">
+                            Connection error.
+                        </div>
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-primary" onclick="retryLastScan()">🔄 RETRY SCAN</button>
+                            <button type="button" class="btn btn-secondary" onclick="editLastScan()">✏️ EDIT REQUEST</button>
+                            <button type="button" class="btn btn-ghost" onclick="configureBackendUrl()">⚙️ CONFIGURE BACKEND URL</button>
+                            <button type="button" class="btn btn-ghost" style="color: var(--warning); border-color: var(--warning);" onclick="runExplicitDemoSimulation()">🧪 RUN OFFLINE SIMULATION (DEMO ONLY)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW 6: VERIFICATION REPORT (AI-ENHANCED)
+             =================================================================== -->
+        <div id="view-report" class="view-section">
+            <div class="container">
+                <!-- EXPLICIT DEMO / SIMULATION MODE BANNER -->
+                <div id="demoModeBanner" class="demo-mode-alert" style="display: none;">
+                    <span style="font-size: 1.5rem;">⚠️</span>
+                    <div style="flex: 1;">
+                        <strong style="color: #fff; font-family: var(--font-heading);">SIMULATED DEMO REPORT // OFFLINE SIMULATION:</strong>
+                        <div>Backend services were unreachable. This report was synthesized using client-side offline rules. Live analyzers (MobSF, Androguard, urlscan.io, VirusTotal) and live Gemini AI were NOT executed.</div>
+                    </div>
+                </div>
+
+                <div class="report-header-banner">
+                    <div>
+                        <div class="font-label text-muted" style="font-size: 0.8rem;">REPORT ID: <span id="reportScanId" class="text-cyan">AS-0000-CORR</span></div>
+                        <h2 style="margin: 0; font-size: 1.7rem;" id="reportScanTitle">Digital Request Verification Report</h2>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <button class="btn btn-tertiary" onclick="exportReportJson()">DOWNLOAD JSON</button>
+                        <button class="btn btn-ghost" onclick="copyReportSummary()">COPY SUMMARY</button>
+                        <button class="btn btn-primary" onclick="switchView('home')">NEW SCAN</button>
+                    </div>
+                </div>
+
+                <!-- VERDICT CARD -->
+                <div class="verdict-master-card verdict-high-risk" id="reportVerdictCard">
+                    <div class="verdict-badge" id="reportVerdictBadge">HIGH_RISK</div>
+                    <h3 style="font-size: 1.4rem; color: #ffffff; margin-bottom: 0.5rem;" id="reportVerdictHeading">Multiple Inconsistencies & Threat Vectors Correlated</h3>
+                    <p style="font-size: 1.05rem; margin: 0;" id="reportVerdictSubtitle">The claimed identity does not match the contacted infrastructure.</p>
+                </div>
+
+                <!-- METRICS -->
+                <div class="report-metrics-grid">
+                    <div class="metric-card"><div class="metric-value" id="metricConfidence">—</div><div class="metric-label">Assessment Confidence</div></div>
+                    <div class="metric-card"><div class="metric-value text-cyan" id="metricCoverage">—</div><div class="metric-label">Evidence Vectors</div></div>
+                    <div class="metric-card"><div class="metric-value text-magenta" id="metricRules">—</div><div class="metric-label">Triggered Rules</div></div>
+                    <div class="metric-card"><div class="metric-value" style="color: #ffb703;" id="metricFindings">—</div><div class="metric-label">Security Findings</div></div>
+                </div>
+
+                <!-- ============================================================
+                     REAL-TIME AI THREAT EXPLANATION INTERFACE BOX
+                     ============================================================ -->
+                <div class="ai-intel-box holographic-panel" id="aiRealtimeBox">
+                    <div class="ai-intel-header">
+                        <div class="ai-intel-title-group">
+                            <div class="ai-pulsing-node"></div>
+                            <div>
+                                <h3 class="ai-intel-title">REAL-TIME AI INTELLIGENCE EXPLANATION</h3>
+                                <span class="ai-intel-subtitle">Synthesized from live telemetry across URL Scanner, Androguard, MobSF & Message Analyzer</span>
+                            </div>
+                        </div>
+                        <div class="ai-badge" id="aiBadge">AI EXPLANATION // GEMINI ACTIVE</div>
+                    </div>
+
+                    <!-- Multi-Vector Telemetry Chips -->
+                    <div class="ai-telemetry-strip" id="aiTelemetryStrip">
+                        <div class="telemetry-chip" id="chipUrlScanner">
+                            <span class="chip-status-dot"></span>
+                            <span>URL SCANNER</span>
+                            <small id="chipUrlStatus">AWAITING</small>
+                        </div>
+                        <div class="telemetry-chip" id="chipMsgScanner">
+                            <span class="chip-status-dot"></span>
+                            <span>MESSAGE ANALYZER</span>
+                            <small id="chipMsgStatus">AWAITING</small>
+                        </div>
+                        <div class="telemetry-chip" id="chipAndroguard">
+                            <span class="chip-status-dot"></span>
+                            <span>ANDROGUARD (DEX)</span>
+                            <small id="chipAndroStatus">AWAITING</small>
+                        </div>
+                        <div class="telemetry-chip" id="chipMobSF">
+                            <span class="chip-status-dot"></span>
+                            <span>MOBSF (DOCKER)</span>
+                            <small id="chipMobsfStatus">AWAITING</small>
+                        </div>
+                    </div>
+
+                    <div class="ai-headline" id="aiHeadline">Loading real-time assessment...</div>
+                    <p class="ai-summary" id="aiSummary">Synthesizing threat vectors and verifying technical evidence...</p>
+                    <p class="ai-why-reason" id="aiWhyReason"></p>
+                    <p class="ai-confidence-note" id="aiConfidenceNote"></p>
+
+                    <!-- Technical Terms Decoded in Plain Language -->
+                    <div class="ai-jargon-section" id="aiJargonSection" style="display: none; margin-top: 1.5rem;">
+                        <div class="cyber-label" style="margin-bottom: 0.75rem;">
+                            <span class="text-cyan">PLAIN-LANGUAGE DECODER</span>
+                            <span class="text-muted">TECHNICAL SIGNALS EXPLAINED FOR EVERYDAY USERS</span>
+                        </div>
+                        <div class="ai-jargon-grid" id="aiJargonGrid"></div>
+                    </div>
+                </div>
+
+                <!-- AI EXPLANATION: WHAT WE FOUND -->
+                <div class="ai-section-card" id="aiFindingsSection">
+                    <div class="ai-section-header">
+                        <div class="ai-section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <span>WHAT WE FOUND</span>
+                        </div>
+                        <span class="ai-badge ai-badge-findings" id="aiFindingsCount">0 FINDINGS</span>
+                    </div>
+                    <div class="ai-findings-grid" id="aiFindingsGrid">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- AI EXPLANATION: WHAT THIS MEANS -->
+                <div class="ai-section-card" id="aiMattersSection">
+                    <div class="ai-section-header">
+                        <div class="ai-section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span>WHAT THIS MEANS</span>
+                        </div>
+                    </div>
+                    <p class="ai-matters-text" id="aiMattersText"></p>
+                </div>
+
+                <!-- ACTIONS: WHAT SHOULD I DO? -->
+                <div class="safe-actions-card">
+                    <div class="cyber-label" style="color: var(--accent-tertiary);"><span>WHAT SHOULD I DO?</span><span>ACTIONABLE SAFETY</span></div>
+                    <div class="action-checklist" id="reportActionsList"></div>
+                </div>
+
+                <!-- ACTIONS: WHAT SHOULD I AVOID? -->
+                <div class="ai-section-card ai-avoid-card" id="aiAvoidSection">
+                    <div class="ai-section-header">
+                        <div class="ai-section-title" style="color: var(--destructive);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                            <span>WHAT SHOULD I AVOID?</span>
+                        </div>
+                    </div>
+                    <div class="ai-avoid-list" id="aiAvoidList"></div>
+                </div>
+
+                <!-- CORRELATED EVIDENCE CHAIN (deterministic) -->
+                <div class="evidence-chain-card">
+                    <div class="cyber-label"><span>CORRELATED EVIDENCE CHAIN</span><span class="text-cyan">DETERMINISTIC ENGINE</span></div>
+                    <div class="chain-timeline" id="reportEvidenceChain"></div>
+                </div>
+
+                <!-- LIMITATIONS -->
+                <div class="ai-section-card ai-limitations-card" id="aiLimitationsSection">
+                    <div class="ai-section-header">
+                        <div class="ai-section-title" style="color: var(--muted-foreground);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <span>LIMITATIONS & UNCERTAINTY</span>
+                        </div>
+                    </div>
+                    <ul class="ai-limitations-list" id="aiLimitationsList"></ul>
+                </div>
+
+                <!-- TECHNICAL EVIDENCE DRAWER -->
+                <div class="tech-details-container">
+                    <button class="tech-drawer-toggle" onclick="toggleTechDrawer()">
+                        <span>[+] VIEW NORMALIZED TECHNICAL EVIDENCE</span><span id="drawerToggleIcon">▼ EXPAND</span>
+                    </button>
+                    <div class="tech-drawer-content" id="techDrawerContent">
+                        <h4 style="color: var(--accent); font-size: 0.9rem; margin-bottom: 0.5rem;">NORMALIZED EVIDENCE SCHEMA:</h4>
+                        <div class="raw-schema-code" id="rawSchemaDisplay">// Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             VIEW 7: RULES MATRIX
+             =================================================================== -->
+        <div id="view-rules" class="view-section">
+            <div class="container">
+                <div class="text-center" style="margin-bottom: 3rem;">
+                    <div class="hero-badge" style="margin: 0 auto 1.5rem;">Transparent Logic Engine</div>
+                    <h2 class="cyber-glitch" data-text="Correlation Rules Matrix">Correlation Rules Matrix</h2>
+                    <p style="margin: 0 auto;">Every risk classification is derived from explicit, testable rules that connect independent evidence vectors.</p>
+                </div>
+                <div class="rule-sim-tester">
+                    <div class="cyber-label"><span>LIVE RULE ENGINE TESTER</span><span class="text-accent">SIMULATION</span></div>
+                    <div class="sim-toggles-row">
+                        <button type="button" class="sim-toggle-btn active" id="simToggleMsg" onclick="toggleSimSignal('msg')">SIGNAL: Urgency + Threat</button>
+                        <button type="button" class="sim-toggle-btn active" id="simToggleUrl" onclick="toggleSimSignal('url')">SIGNAL: Domain Mismatch</button>
+                        <button type="button" class="sim-toggle-btn active" id="simToggleApk" onclick="toggleSimSignal('apk')">SIGNAL: Unofficial APK</button>
+                        <button type="button" class="sim-toggle-btn active" id="simToggleOtp" onclick="toggleSimSignal('otp')">SIGNAL: OTP Request</button>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 1rem; flex-wrap: wrap; gap: 1rem;">
+                        <div><span class="text-muted font-label">VERDICT: </span><span class="verdict-badge" id="simVerdictBadge" style="font-size: 1.1rem; padding: 0.2rem 0.8rem;">HIGH_RISK</span></div>
+                        <div class="font-label text-cyan" id="simTriggeredRules">TRIGGERED: R1, R2, R4</div>
+                    </div>
+                </div>
+                <div class="rules-grid">
+                    <div class="rule-card"><div class="rule-header"><span class="rule-code">RULE R1</span><span class="rule-severity-pill text-magenta">HIGH</span></div><h4>APK Install Request + APK Present</h4><div class="rule-formula">Message instructs APK install + User provides APK file</div><p style="font-size: 0.85rem; color: var(--muted-foreground);">Connects coercive text with static APK metadata and dangerous permissions.</p></div>
+                    <div class="rule-card"><div class="rule-header"><span class="rule-code">RULE R2</span><span class="rule-severity-pill" style="color: var(--destructive); border-color: var(--destructive);">IDENTITY</span></div><h4>Claimed Org vs URL Mismatch</h4><div class="rule-formula">Message claims Organization X + URL domain ≠ X</div><p style="font-size: 0.85rem; color: var(--muted-foreground);">Classic phishing: established brand claimed, domain belongs to unrelated infrastructure.</p></div>
+                    <div class="rule-card"><div class="rule-header"><span class="rule-code">RULE R3</span><span class="rule-severity-pill text-magenta">PACKAGE</span></div><h4>Claimed Org vs APK Package Mismatch</h4><div class="rule-formula">Message claims Organization X + APK package/cert ≠ X</div><p style="font-size: 0.85rem; color: var(--muted-foreground);">Flags rogue Android packages signed by unknown debug certificates.</p></div>
+                    <div class="rule-card"><div class="rule-header"><span class="rule-code">RULE R4</span><span class="rule-severity-pill" style="color: var(--warning); border-color: var(--warning);">SOCIAL ENG</span></div><h4>Credentials + Coercive Urgency</h4><div class="rule-formula">OTP / PIN request + Account threat / deadline</div><p style="font-size: 0.85rem; color: var(--muted-foreground);">Artificially induced time pressure to bypass security procedures.</p></div>
+                    <div class="rule-card"><div class="rule-header"><span class="rule-code">RULE R5</span><span class="rule-severity-pill text-cyan">EXTERNAL</span></div><h4>URL Phishing Flag + Instruction</h4><div class="rule-formula">urlscan / VT malicious + Message instructs link click</div><p style="font-size: 0.85rem; color: var(--muted-foreground);">External threat intel confirms active phishing signatures.</p></div>
+                    <div class="rule-card"><div class="rule-header"><span class="rule-code">RULE R6</span><span class="rule-severity-pill text-muted">FP GUARD</span></div><h4>Isolated URL Signal Alone</h4><div class="rule-formula">Subdomains / HTTP only, no supporting threat signals</div><p style="font-size: 0.85rem; color: var(--muted-foreground);">Structural signals alone do not warrant a malicious verdict.</p></div>
+                    <div class="rule-card"><div class="rule-header"><span class="rule-code">RULE R7</span><span class="rule-severity-pill text-accent">HONEST</span></div><h4>Evidence Missing = Insufficient Evidence</h4><div class="rule-formula">Absence of signals ≠ Guaranteed safety</div><p style="font-size: 0.85rem; color: var(--muted-foreground);">System issues "INSUFFICIENT_EVIDENCE", never a false "SAFE" badge.</p></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"></path><path d="M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 1 0 -6 0"></path></svg>
+                        <span>AppSentinel</span>
+                    </div>
+                    <p class="mt-4 text-muted">Advanced evidence correlation and analysis.</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#" onclick="switchView('home')">Privacy</a>
+                    <a href="#" onclick="switchView('home')">Terms</a>
+                    <a href="#" onclick="switchView('home')">Contact</a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AppSentinel. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

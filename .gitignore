@@ -1,0 +1,62 @@
+# ============================================================
+# AppSentinel .gitignore
+# ============================================================
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Python bytecode & caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Pytest caches
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+storage/appsentinel.db
+
+# Generated reports
+storage/reports/
+
+# Uploaded APKs (user-submitted files must never be committed)
+storage/uploads/
+
+# IDE & editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Kombai (generated)
+.kombai/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Node (if any frontend build tooling is added later)
+node_modules/

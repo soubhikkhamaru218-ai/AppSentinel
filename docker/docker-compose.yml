@@ -1,0 +1,25 @@
+# ============================================================
+# AppSentinel // MobSF (Mobile Security Framework) Docker Service
+# GitHub Repository: https://github.com/MobSF/Mobile-Security-Framework-MobSF
+# ============================================================
+
+services:
+  mobsf:
+    image: opensecurity/mobile-security-framework-mobsf:latest
+    container_name: appsentinel-mobsf
+    restart: unless-stopped
+    ports:
+      # Maps host port 8001 (or $MOBSF_PORT) to container port 8000 to avoid port conflict
+      # with AppSentinel backend which defaults to port 8000.
+      - "${MOBSF_PORT:-8001}:8000"
+    environment:
+      # Static API key configured for AppSentinel to communicate with MobSF REST API
+      - MOBSF_API_KEY=${MOBSF_API_KEY:-appsentinel-local-mobsf-key}
+      - MOBSF_ANALYZER_IDENTIFIER=appsentinel
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
