@@ -355,10 +355,11 @@ function resetForm(formId) {
 }
 
 let lastScanParams = null;
+const SCAN_REQUEST_TIMEOUT_MS = 120000;
 
 async function fetchScanFromApi(mode, { message, identity, url, apk }) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => controller.abort(), SCAN_REQUEST_TIMEOUT_MS);
 
     try {
         let res = null;
@@ -436,7 +437,7 @@ async function fetchScanFromApi(mode, { message, identity, url, apk }) {
         return data;
     } catch (err) {
         if (err.name === 'AbortError') {
-            throw new Error("Scan request timed out after 60 seconds. The backend or external analyzers did not respond in time.");
+            throw new Error(`Scan request timed out after ${Math.round(SCAN_REQUEST_TIMEOUT_MS / 1000)} seconds. The backend did not return a completed report in time.`);
         }
         if (err.message && err.message.toLowerCase().includes('failed to fetch')) {
             throw new Error(`Cannot reach AppSentinel backend at ${API_BASE}. Please verify that the server is running.`);

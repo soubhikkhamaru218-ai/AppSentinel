@@ -92,6 +92,25 @@ class TestSecurityAndResilienceRegressions(unittest.IsolatedAsyncioTestCase):
                 # Deterministic verdict is preserved
                 self.assertIn(res.verdict.label, ["HIGH_RISK", "SUSPICIOUS"])
 
+    async def test_gemini_timeout_is_bounded_by_orchestrator(self):
+        """Slow AI explanation must not prevent deterministic scan results from returning."""
+        async def slow_ai(*args, **kwargs):
+            import asyncio
+            await asyncio.sleep(0.05)
+
+        with patch.object(get_settings(), "gemini_api_key", "mock-key"), \
+             patch.object(get_settings(), "ai_total_timeout_seconds", 0.01), \
+             patch("backend.services.ai_explanation_service.generate_ai_explanation", side_effect=slow_ai):
+            res = await run_scan(
+                message="URGENT: Your account is blocked. Share your OTP immediately.",
+                scan_mode="message",
+            )
+
+            self.assertEqual(res.ai.status, "unavailable")
+            self.assertIn("timed out", res.ai.reason)
+            self.assertEqual(res.ai.summary, "")
+            self.assertIn(res.verdict.label, ["HIGH_RISK", "SUSPICIOUS"])
+
     # ── 5. SSRF INTERNAL ADDRESS PROTECTION ──────────────────────────────────
     def test_ssrf_internal_address_detection(self):
         """Internal, loopback, link-local, and RFC 1918 IPs must be flagged as internal targets."""
@@ -144,6 +163,33 @@ class TestSecurityAndResilienceRegressions(unittest.IsolatedAsyncioTestCase):
         # Verify no residual files were left in the upload directory
         diff = files_after - files_before
         self.assertEqual(len(diff), 0, f"Residual uploaded files found after scan: {diff}")
+
+    async def test_orchestrator_uses_bounded_mobsf_budget(self):
+        """APK scans must call MobSF with bounded best-effort timeout settings."""
+        with tempfile.NamedTemporaryFile(suffix=".apk", delete=False) as f:
+            with zipfile.ZipFile(f.name, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr("AndroidManifest.xml", b"<manifest package='com.test.timeout'></manifest>")
+                zf.writestr("classes.dex", b"DEX\n035\x00")
+            apk_path = Path(f.name)
+
+        try:
+            with patch.object(get_settings(), "mobsf_timeout_seconds", 3.0), \
+                 patch.object(get_settings(), "mobsf_max_retries", 0), \
+                 patch("backend.services.scan_orchestrator.scan_apk_with_mobsf") as mock_mobsf:
+                mock_mobsf.return_value = {
+                    "source": "mobsf",
+                    "status": "unavailable",
+                    "reason": "test timeout",
+                    "available": False,
+                }
+
+                res = await run_scan(apk_path=apk_path, scan_mode="apk")
+
+                self.assertEqual(res.scan_mode, "apk")
+                self.assertEqual(mock_mobsf.call_args.kwargs["timeout"], 3.0)
+                self.assertEqual(mock_mobsf.call_args.kwargs["max_retries"], 0)
+        finally:
+            apk_path.unlink(missing_ok=True)
 
 
 class TestCorsAndMiddleware(unittest.TestCase):

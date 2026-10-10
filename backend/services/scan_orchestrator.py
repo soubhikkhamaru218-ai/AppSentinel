@@ -225,7 +225,11 @@ async def run_scan(
 
             # 4b. MobSF independent remote analysis
             try:
-                mobsf_result = scan_apk_with_mobsf(apk_path)
+                mobsf_result = scan_apk_with_mobsf(
+                    apk_path,
+                    timeout=settings.mobsf_timeout_seconds,
+                    max_retries=settings.mobsf_max_retries,
+                )
                 logger.info(f"MOBSF status={mobsf_result.get('status')}")
                 pipeline.append(PipelineStep(
                     name="MobSF",
@@ -297,12 +301,30 @@ async def run_scan(
         mobsf_result=mobsf_result,
     )
     try:
-        ai_raw = await ai_explanation_service.generate_ai_explanation(
-            normalized_evidence=ai_evidence_package,
-            correlation_result=corr_result,
-            limitations=limitations,
-            analyzer_status=analyzer_status_map,
+        ai_raw = await asyncio.wait_for(
+            ai_explanation_service.generate_ai_explanation(
+                normalized_evidence=ai_evidence_package,
+                correlation_result=corr_result,
+                limitations=limitations,
+                analyzer_status=analyzer_status_map,
+            ),
+            timeout=settings.ai_total_timeout_seconds,
         )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "AI_EXPLANATION: Timed out after %.1f seconds",
+            settings.ai_total_timeout_seconds,
+        )
+        ai_raw = {
+            "status": "unavailable",
+            "reason": f"AI explanation timed out after {settings.ai_total_timeout_seconds:.0f} seconds",
+            "summary": "",
+            "why_it_matters": [],
+            "technical_to_plain_language": [],
+            "limitations": limitations,
+            "recommended_actions": [],
+            "avoid_actions": [],
+        }
     except Exception as ai_err:
         logger.warning(f"AI_EXPLANATION: Unexpected failure in explanation service: {ai_err}")
         ai_raw = {

@@ -124,11 +124,10 @@ async def generate_ai_explanation(
         client = genai.Client(api_key=settings.gemini_api_key)
         primary_model = settings.ai_model or "gemini-2.5-flash"
         
-        # Build priority model list: primary first, followed by verified stable models
+        # Keep AI best-effort so scan responses are not held hostage by model fallback delays.
         models_to_try = [primary_model]
-        for candidate in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-flash-lite", "gemini-3.8-flash"]:
-            if candidate not in models_to_try:
-                models_to_try.append(candidate)
+        if primary_model != "gemini-2.5-flash":
+            models_to_try.append("gemini-2.5-flash")
 
         raw_text = ""
         last_error = None
@@ -164,8 +163,10 @@ async def generate_ai_explanation(
                         return getattr(interaction, "output_text", "") or ""
                     return ""
 
-                # Impose a 20-second timeout per model so 503 retry stalls immediately fail over to next model
-                raw_text = await asyncio.wait_for(asyncio.to_thread(_invoke_gemini), timeout=20.0)
+                raw_text = await asyncio.wait_for(
+                    asyncio.to_thread(_invoke_gemini),
+                    timeout=settings.ai_model_timeout_seconds,
+                )
 
                 if raw_text and raw_text.strip():
                     logger.info(f"AI_EXPLANATION: Successfully received response from '{model}'")

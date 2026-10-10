@@ -34,8 +34,12 @@ class Settings(BaseSettings):
     google_safe_browsing_api_key: str = Field(default="")   # https://console.cloud.google.com → Safe Browsing API
     gemini_api_key: str = Field(default="")
     ai_model: str = Field(default="gemini-2.5-flash")
+    ai_model_timeout_seconds: float = Field(default=12.0)
+    ai_total_timeout_seconds: float = Field(default=25.0)
     mobsf_url: str = Field(default="http://localhost:8001")
     mobsf_api_key: str = Field(default="")
+    mobsf_timeout_seconds: float = Field(default=15.0)
+    mobsf_max_retries: int = Field(default=0)
 
     # --- Upload Limits ---
     max_apk_size_mb: int = Field(default=50)
