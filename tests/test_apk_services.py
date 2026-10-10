@@ -113,6 +113,35 @@ class TestMobSFService(unittest.TestCase):
         # Ensure no final verdict generated
         self.assertNotIn("verdict", normalized)
 
+    def test_mobsf_missing_report_is_unavailable_not_completed(self):
+        """A missing MobSF report must never be normalized as a clean completed result."""
+        upload_resp = MagicMock()
+        upload_resp.status_code = 200
+        upload_resp.json.return_value = {"hash": "abc123hash"}
+
+        scan_resp = MagicMock()
+        scan_resp.status_code = 200
+        scan_resp.json.return_value = {"scan": "accepted"}
+
+        report_resp = MagicMock()
+        report_resp.status_code = 404
+
+        with patch("httpx.Client.post", side_effect=[upload_resp, scan_resp, report_resp]):
+            result = scan_apk_with_mobsf(
+                apk_filepath=self.apk_path,
+                server_url="http://mobsf:8000",
+                api_key="secret",
+                timeout=3.0,
+                max_retries=0,
+                poll_interval=0.01,
+            )
+
+        self.assertEqual(result["status"], "unavailable")
+        self.assertFalse(result.get("available", False))
+        self.assertEqual(result.get("hash"), "abc123hash")
+        self.assertNotIn("security_score", result)
+        self.assertNotIn("verdict", result)
+
 
 class TestAndroguardService(unittest.TestCase):
 

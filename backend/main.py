@@ -4,6 +4,7 @@ FastAPI Application serving the Evidence Correlation Engine.
 """
 
 from contextlib import asynccontextmanager
+import asyncio
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -55,17 +56,18 @@ app = FastAPI(
 
 # ─── CORS CONFIGURATION ─────────────────────────────────────────────────────
 def get_allowed_origins() -> list[str]:
-    base_origins = [
-        settings.frontend_origin.rstrip("/"),
-        "http://localhost:8088",
-        "http://127.0.0.1:8088",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ]
+    base_origins = [settings.frontend_origin.rstrip("/")] if settings.frontend_origin else []
+    if settings.is_dev:
+        base_origins.extend([
+            "http://localhost:8088",
+            "http://127.0.0.1:8088",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ])
     if getattr(settings, "cors_origins", ""):
         for o in settings.cors_origins.split(","):
             cleaned = o.strip().rstrip("/")
@@ -87,27 +89,47 @@ import time
 from collections import defaultdict
 
 _scan_rate_records: dict[str, list[float]] = defaultdict(list)
-_RATE_LIMIT_MAX = 60
-_RATE_LIMIT_WINDOW = 60.0
+_scan_semaphore = asyncio.Semaphore(max(1, settings.scan_concurrency_limit))
 
 @app.middleware("http")
 async def scan_rate_limiter(request: Request, call_next):
     if request.url.path.startswith("/api/scan") and request.method == "POST":
         client_ip = request.client.host if request.client else "127.0.0.1"
         now = time.time()
-        window_start = now - _RATE_LIMIT_WINDOW
+        window_start = now - settings.scan_rate_limit_window_seconds
         recent = [t for t in _scan_rate_records[client_ip] if t > window_start]
-        if len(recent) >= _RATE_LIMIT_MAX:
+        if len(recent) >= settings.scan_rate_limit_max:
             logger.warning(f"RATE_LIMIT: Client '{client_ip}' exceeded limit on {request.url.path}")
             return JSONResponse(
                 status_code=429,
                 content={
                     "error": "Rate limit exceeded",
-                    "detail": f"Scan request limit of {_RATE_LIMIT_MAX} per minute exceeded. Please wait.",
+                    "detail": f"Scan request limit of {settings.scan_rate_limit_max} per {settings.scan_rate_limit_window_seconds:.0f} seconds exceeded. Please wait.",
                 },
             )
         recent.append(now)
         _scan_rate_records[client_ip] = recent
+
+        acquired = False
+        try:
+            await asyncio.wait_for(_scan_semaphore.acquire(), timeout=0.01)
+            acquired = True
+        except asyncio.TimeoutError:
+            logger.warning("CONCURRENCY_LIMIT: Scan capacity exceeded on %s", request.url.path)
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "Too many concurrent scans",
+                    "detail": "Scan capacity is temporarily full. Please retry shortly.",
+                },
+            )
+
+        try:
+            return await call_next(request)
+        finally:
+            if acquired:
+                _scan_semaphore.release()
+
     return await call_next(request)
 
 # ─── ROUTER REGISTRATION ────────────────────────────────────────────────────

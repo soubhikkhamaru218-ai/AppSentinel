@@ -229,6 +229,7 @@ async def run_scan(
                     apk_path,
                     timeout=settings.mobsf_timeout_seconds,
                     max_retries=settings.mobsf_max_retries,
+                    poll_interval=settings.mobsf_poll_interval_seconds,
                 )
                 logger.info(f"MOBSF status={mobsf_result.get('status')}")
                 pipeline.append(PipelineStep(
@@ -236,7 +237,7 @@ async def run_scan(
                     status=mobsf_result.get("status", "unavailable"),
                     reason=mobsf_result.get("reason"),
                 ))
-                if mobsf_result.get("status") in ["unavailable", "failed"]:
+                if mobsf_result.get("status") in ["unavailable", "failed", "timed_out"]:
                     limitations.append(f"MobSF analysis was {mobsf_result.get('status')}: {mobsf_result.get('reason', 'No response')}")
                 elif mobsf_result.get("status") == "not_configured":
                     limitations.append("MobSF security framework service not configured.")

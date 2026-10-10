@@ -31,6 +31,20 @@ from backend.utils.logging_config import logger
 router = APIRouter(prefix="/api", tags=["Scans"])
 
 
+def require_scan_history_authorization():
+    """
+    Temporary fail-closed guard for scan history APIs.
+
+    Scan records can contain submitted messages, URLs, identities, and APK
+    metadata. Until the app has authenticated users and per-record ownership,
+    historical scan access must not be exposed to anonymous clients.
+    """
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Scan history access is disabled until authentication and per-user authorization are available.",
+    )
+
+
 # ─── 1. MESSAGE SCAN ────────────────────────────────────────────────────────
 @router.post("/scan/message", response_model=ScanResponse)
 async def scan_message_endpoint(
@@ -38,7 +52,7 @@ async def scan_message_endpoint(
     db: Session = Depends(get_db),
 ):
     """Analyze a suspicious SMS, email, or instant message for scam signals."""
-    logger.info(f"API: Message scan requested (Identity: '{req.identity or 'None'}')")
+    logger.info("API: Message scan requested identity_supplied=%s", bool(req.identity))
     return await run_scan(
         message=req.message,
         identity=req.identity,
@@ -54,7 +68,7 @@ async def scan_url_endpoint(
     db: Session = Depends(get_db),
 ):
     """Analyze a suspicious URL / domain with safe static inspection & reputation checks."""
-    logger.info(f"API: URL scan requested for '{req.url}'")
+    logger.info("API: URL scan requested url_length=%s identity_supplied=%s", len(req.url), bool(req.identity))
     return await run_scan(
         url=req.url,
         identity=req.identity,
@@ -73,7 +87,7 @@ async def scan_apk_endpoint(
     db: Session = Depends(get_db),
 ):
     """Safely stage and inspect an APK package with Androguard and MobSF independently."""
-    logger.info(f"API: APK scan requested for upload '{file.filename}'")
+    logger.info("API: APK scan requested filename_supplied=%s", bool(file.filename))
 
     try:
         staged = await stage_apk(file)
@@ -128,6 +142,7 @@ def get_scan_history(
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
+    _: None = Depends(require_scan_history_authorization),
 ):
     """List historical scan records from the configured database."""
     total = db.query(ScanRecord).count()
@@ -158,6 +173,7 @@ def get_scan_history(
 def get_scan_by_id(
     scan_id: str,
     db: Session = Depends(get_db),
+    _: None = Depends(require_scan_history_authorization),
 ):
     """Retrieve complete evidence chain and findings for a historical scan ID."""
     record = db.query(ScanRecord).filter(ScanRecord.scan_id == scan_id).first()
@@ -238,6 +254,7 @@ def get_scan_by_id(
 def delete_scan(
     scan_id: str,
     db: Session = Depends(get_db),
+    _: None = Depends(require_scan_history_authorization),
 ):
     """Delete a historical scan record from the database."""
     record = db.query(ScanRecord).filter(ScanRecord.scan_id == scan_id).first()

@@ -19,7 +19,7 @@ import zipfile
 import httpx
 from fastapi.testclient import TestClient
 
-from backend.main import app
+from backend.main import app, get_allowed_origins, _scan_rate_records
 from backend.config import get_settings
 from backend.services.mobsf_service import scan_apk_with_mobsf
 from backend.services.virustotal_service import check_url as vt_check_url, check_file_hash as vt_check_file_hash
@@ -204,6 +204,31 @@ class TestCorsAndMiddleware(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("access-control-allow-origin"), "http://localhost:8088")
         self.assertEqual(response.headers.get("access-control-allow-credentials"), "true")
+
+    def test_production_cors_does_not_auto_allow_dev_ports(self):
+        """Production origin list should not implicitly include localhost dev ports."""
+        with patch.object(get_settings(), "app_env", "production"), \
+             patch.object(get_settings(), "frontend_origin", "https://app.example"), \
+             patch.object(get_settings(), "cors_origins", ""):
+            origins = get_allowed_origins()
+
+        self.assertEqual(origins, ["https://app.example"])
+        self.assertNotIn("http://localhost:3000", origins)
+
+    def test_scan_rate_limit_is_configurable(self):
+        """Configured scan rate limit should reject excess scan submissions."""
+        client = TestClient(app)
+        _scan_rate_records.clear()
+        payload = {"message": "hello", "identity": ""}
+
+        with patch.object(get_settings(), "scan_rate_limit_max", 1), \
+             patch.object(get_settings(), "scan_rate_limit_window_seconds", 60.0):
+            first = client.post("/api/scan/message", json=payload)
+            second = client.post("/api/scan/message", json=payload)
+
+        _scan_rate_records.clear()
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 429)
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ class TestFullApi(unittest.TestCase):
     def setUpClass(cls):
         init_db()
 
-    def test_message_scan_and_history_lifecycle(self):
+    def test_message_scan_persists_but_history_endpoints_are_disabled(self):
         # 1. Submit message scan
         payload = {
             "message": "URGENT: Your SBI account is blocked. Complete KYC immediately at link.",
@@ -36,27 +36,17 @@ class TestFullApi(unittest.TestCase):
         self.assertIn("evidence_chain", data)
         self.assertIn("explanation", data)
 
-        # 2. Query history
+        # 2. Historical scan endpoints are disabled until authentication and
+        # per-user authorization exist.
         hist = client.get("/api/scans")
-        self.assertEqual(hist.status_code, 200)
-        hist_data = hist.json()
-        self.assertGreater(hist_data["total"], 0)
-        found = any(s["scan_id"] == scan_id for s in hist_data["scans"])
-        self.assertTrue(found)
+        self.assertEqual(hist.status_code, 403)
+        self.assertIn("disabled", hist.json()["detail"])
 
-        # 3. Retrieve specific scan
         single = client.get(f"/api/scans/{scan_id}")
-        self.assertEqual(single.status_code, 200)
-        self.assertEqual(single.json()["scan_id"], scan_id)
+        self.assertEqual(single.status_code, 403)
 
-        # 4. Delete scan
         deleted = client.delete(f"/api/scans/{scan_id}")
-        self.assertEqual(deleted.status_code, 200)
-        self.assertEqual(deleted.json()["status"], "deleted")
-
-        # 5. Confirm 404 after deletion
-        missing = client.get(f"/api/scans/{scan_id}")
-        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(deleted.status_code, 403)
 
     def test_url_scan_api(self):
         payload = {

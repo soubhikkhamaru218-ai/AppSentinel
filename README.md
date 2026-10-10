@@ -75,10 +75,17 @@ Inside that compose network, the backend uses:
 MOBSF_URL=http://mobsf:8000
 ```
 
-For a local hackathon demo, `docker-compose.yml` provides a fallback
-`MOBSF_API_KEY` so MobSF can boot even if `.env` is blank. For any public
-deployment, set a strong `MOBSF_API_KEY` in the deployment environment and keep
-`.env` out of Git.
+`docker-compose.yml` does not provide a fallback MobSF key. Set a strong
+`MOBSF_API_KEY` in the deployment environment before starting Compose and keep
+`.env` out of Git. The root Compose file keeps MobSF private on the Docker
+network; the backend reaches it at `http://mobsf:8000` and MobSF is not
+published on a host port. The MobSF-only helper Compose file binds to
+`127.0.0.1` for local debugging only.
+
+Runtime data is persisted in Docker volumes:
+
+- `appsentinel_storage` for the SQLite database, uploads, and generated reports.
+- `mobsf_data` for MobSF runtime state.
 
 For a hosted deployment, MobSF must run on infrastructure that supports Docker
 containers with enough memory and persistent storage. A laptop Docker container

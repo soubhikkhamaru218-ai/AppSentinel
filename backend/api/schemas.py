@@ -141,7 +141,7 @@ class ApkAnalysisResult(BaseModel):
 class MobSfAnalysisResult(BaseModel):
     """Normalized technical evidence from MobSF static analysis."""
     source: str = "mobsf"
-    status: str = Field(default="completed", description="completed | unavailable | failed | skipped | not_configured")
+    status: str = Field(default="completed", description="completed | unavailable | failed | timed_out | skipped | not_configured")
     reason: Optional[str] = None
     package_name: str = ""
     sha256: str = ""
@@ -178,7 +178,7 @@ class InputCoverage(BaseModel):
 class PipelineStep(BaseModel):
     """Execution status of an individual analyzer or engine step."""
     name: str
-    status: str  # completed | unavailable | failed | skipped | not_configured
+    status: str  # completed | unavailable | failed | timed_out | skipped | not_configured | rate_limited
     reason: Optional[str] = None
 
 

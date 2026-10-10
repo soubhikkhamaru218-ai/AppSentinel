@@ -108,7 +108,7 @@ def analyze_url(url: str) -> UrlAnalysisResult:
     # Positive evidence (when clean)
     positive_indicators: List[str] = []
     if scheme == "https":
-        positive_indicators.append("HTTPS encryption protocol enabled")
+        positive_indicators.append("HTTPS scheme present; certificate validity was not verified")
     if not is_ip:
         positive_indicators.append("Hostname resolves to standard domain name (not raw IP)")
     if not suspicious_found:
@@ -125,7 +125,7 @@ def analyze_url(url: str) -> UrlAnalysisResult:
         suspicious_keywords_found=suspicious_found[:10],
         path_depth=path_depth,
         is_apk_download=is_apk_download,
-        ssl_valid=scheme == "https",
+        ssl_valid=None,
         positive_indicators=positive_indicators,
         status="completed",
         raw_parse={
@@ -140,6 +140,8 @@ def analyze_url(url: str) -> UrlAnalysisResult:
             "path_depth": path_depth,
             "is_internal_target": is_internal_target,
             "suspicious_tld": has_suspicious_tld,
+            "https_scheme": scheme == "https",
+            "certificate_validation_performed": False,
         },
     )
 

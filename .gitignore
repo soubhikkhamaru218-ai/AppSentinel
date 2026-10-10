@@ -26,10 +26,12 @@ venv/
 env/
 ENV/
 
-# Local databases
+# Local databases and runtime storage
 *.db
 *.sqlite
 *.sqlite3
+storage/*
+!storage/.gitkeep
 storage/appsentinel.db
 
 # Generated reports
@@ -37,6 +39,10 @@ storage/reports/
 
 # Uploaded APKs (user-submitted files must never be committed)
 storage/uploads/
+
+# Local MobSF runtime data if mounted into the project during development
+storage/mobsf/
+.MobSF/
 
 # IDE & editor files
 .idea/

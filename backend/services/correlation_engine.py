@@ -500,8 +500,9 @@ def _calculate_verdict(
 
     # ── CASE 8: LOW_CONCERN ──────────────────────────────────────────
     # Evidence was provided, analyzed, and NO suspicious indicators were found.
-    # For a clean URL like https://google.com, confidence is high (0.91)
-    confidence = 0.91 if (ur.domain and ur.ssl_valid and not ur.has_suspicious_keywords) else 0.85
+    # For a clean HTTPS-scheme URL like https://google.com, confidence is high
+    # without implying that TLS certificate validation was performed.
+    confidence = 0.91 if (ur.domain and ur.scheme == "https" and not ur.has_suspicious_keywords) else 0.85
     explanation = (
         "No suspicious indicators were detected in the available evidence. "
         "The request appears consistent with standard communication patterns."

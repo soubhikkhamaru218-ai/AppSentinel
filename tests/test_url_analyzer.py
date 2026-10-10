@@ -19,7 +19,9 @@ class TestUrlAnalyzer(unittest.TestCase):
         self.assertEqual(res.domain, "statebank-kyc-verify.net")
         self.assertTrue(res.is_apk_download)
         self.assertTrue(res.has_suspicious_keywords)
-        self.assertFalse(res.ssl_valid)  # http -> False
+        self.assertIsNone(res.ssl_valid)
+        self.assertFalse(res.raw_parse["https_scheme"])
+        self.assertFalse(res.raw_parse["certificate_validation_performed"])
 
     def test_ip_address_host(self):
         url = "http://192.168.1.100/login/update"
@@ -31,7 +33,8 @@ class TestUrlAnalyzer(unittest.TestCase):
         url = "https://security-account-portal.xyz"
         res = analyze_url(url)
         self.assertTrue(res.has_suspicious_keywords)
-        self.assertTrue(res.ssl_valid)
+        self.assertIsNone(res.ssl_valid)
+        self.assertTrue(res.raw_parse["https_scheme"])
 
     def test_clean_https_domain(self):
         url = "https://www.google.com"
@@ -39,6 +42,7 @@ class TestUrlAnalyzer(unittest.TestCase):
         self.assertEqual(res.domain, "www.google.com")
         self.assertFalse(res.is_ip_host)
         self.assertFalse(res.is_apk_download)
+        self.assertIn("certificate validity was not verified", " ".join(res.positive_indicators))
 
 
 if __name__ == "__main__":

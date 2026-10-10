@@ -51,7 +51,9 @@ class TestComprehensiveScenarios(unittest.IsolatedAsyncioTestCase):
         self.assertIn("URL Analyzer", [p.name for p in res.pipeline])
         # Verify positive findings present in URL analysis
         url_data = res.analyzers.get("url", {})
-        self.assertTrue(url_data.get("ssl_valid"))
+        self.assertIsNone(url_data.get("ssl_valid"))
+        self.assertTrue(url_data.get("raw_parse", {}).get("https_scheme"))
+        self.assertFalse(url_data.get("raw_parse", {}).get("certificate_validation_performed"))
         self.assertFalse(url_data.get("is_ip_host"))
         self.assertFalse(url_data.get("is_apk_download"))
 

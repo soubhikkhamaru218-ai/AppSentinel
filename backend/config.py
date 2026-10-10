@@ -40,10 +40,17 @@ class Settings(BaseSettings):
     mobsf_api_key: str = Field(default="")
     mobsf_timeout_seconds: float = Field(default=15.0)
     mobsf_max_retries: int = Field(default=0)
+    mobsf_poll_interval_seconds: float = Field(default=2.0)
 
     # --- Upload Limits ---
     max_apk_size_mb: int = Field(default=50)
+    upload_chunk_size_bytes: int = Field(default=1024 * 1024)
     upload_dir: str = Field(default="./storage/uploads")
+
+    # --- Request Protection ---
+    scan_rate_limit_max: int = Field(default=60)
+    scan_rate_limit_window_seconds: float = Field(default=60.0)
+    scan_concurrency_limit: int = Field(default=4)
 
     # --- Logging ---
     log_level: str = Field(default="INFO")

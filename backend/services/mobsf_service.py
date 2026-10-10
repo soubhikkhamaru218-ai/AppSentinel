@@ -63,6 +63,7 @@ def scan_apk_with_mobsf(
     api_key: Optional[str] = None,
     timeout: float = 60.0,
     max_retries: int = 2,
+    poll_interval: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Upload and analyze an APK file using the MobSF REST API.
@@ -78,6 +79,10 @@ def scan_apk_with_mobsf(
     settings = get_settings()
     configured_url = (server_url or settings.mobsf_url or "").rstrip("/")
     configured_key = settings.mobsf_api_key if api_key is None else api_key
+    poll_interval_seconds = (
+        settings.mobsf_poll_interval_seconds if poll_interval is None else poll_interval
+    )
+    deadline = time.monotonic() + max(1.0, timeout)
 
     # Check configuration
     if not configured_url or not configured_key:
@@ -110,7 +115,7 @@ def scan_apk_with_mobsf(
         "X-Mobsf-Api-Key": configured_key,
     }
 
-    client_timeout = httpx.Timeout(timeout, connect=10.0)
+    client_timeout = httpx.Timeout(timeout, connect=min(10.0, max(1.0, timeout)))
 
     try:
         with httpx.Client(base_url=configured_url, timeout=client_timeout) as client:
@@ -184,26 +189,91 @@ def scan_apk_with_mobsf(
                     "error": f"MobSF scan initiation failed (HTTP {scan_resp.status_code})",
                 }
 
-            # ── 3. Retrieve JSON Report (with polling / retries if needed) ───
+            # ── 3. Retrieve JSON Report with bounded polling ─────────────────
             report_data = {}
-            for attempt in range(max_retries + 1):
+            last_report_status: Optional[int] = None
+            last_report_error: Optional[str] = None
+            poll_attempts = max(1, max_retries + 1)
+
+            for attempt in range(poll_attempts):
+                if time.monotonic() >= deadline:
+                    logger.warning("MOBSF: Report polling deadline expired before attempt %s", attempt + 1)
+                    return {
+                        "source": "mobsf",
+                        "status": "timed_out",
+                        "reason": f"MobSF report was not available before the {timeout:.0f}s deadline",
+                        "available": False,
+                        "error": "MobSF report polling timed out",
+                        "hash": apk_hash,
+                    }
+
                 report_resp = client.post("/api/v1/report_json", data=scan_payload, headers=headers)
+                last_report_status = report_resp.status_code
+
+                if report_resp.status_code == 401 or report_resp.status_code == 403:
+                    logger.warning("MOBSF: Report authentication failed (HTTP %s)", report_resp.status_code)
+                    return {
+                        "source": "mobsf",
+                        "status": "failed",
+                        "reason": f"MobSF report authentication failed (HTTP {report_resp.status_code})",
+                        "available": False,
+                        "error": "MobSF API key invalid or unauthorized",
+                        "hash": apk_hash,
+                    }
+
                 if report_resp.status_code == 200:
                     try:
-                        report_data = report_resp.json()
-                        if report_data and isinstance(report_data, dict):
-                            break
-                    except Exception:
-                        pass
-                if attempt < max_retries:
-                    time.sleep(2.0)
+                        parsed_report = report_resp.json()
+                    except Exception as json_err:
+                        logger.warning("MOBSF: Malformed report JSON: %s", json_err)
+                        return {
+                            "source": "mobsf",
+                            "status": "failed",
+                            "reason": "MobSF report returned malformed JSON",
+                            "available": False,
+                            "error": "MobSF report returned malformed JSON",
+                            "hash": apk_hash,
+                        }
 
-            # Fallback to scan response payload if report endpoint returned empty
+                    if parsed_report and isinstance(parsed_report, dict):
+                        report_data = parsed_report
+                        break
+
+                    last_report_error = "MobSF report endpoint returned an empty report"
+                elif report_resp.status_code in {202, 204, 404}:
+                    last_report_error = f"MobSF report not ready or not found (HTTP {report_resp.status_code})"
+                elif report_resp.status_code >= 500:
+                    last_report_error = f"MobSF report service error (HTTP {report_resp.status_code})"
+                else:
+                    last_report_error = f"MobSF report request failed (HTTP {report_resp.status_code})"
+                    logger.warning("MOBSF: %s", last_report_error)
+                    return {
+                        "source": "mobsf",
+                        "status": "failed",
+                        "reason": last_report_error,
+                        "available": False,
+                        "error": last_report_error,
+                        "hash": apk_hash,
+                    }
+
+                if attempt < poll_attempts - 1:
+                    sleep_for = min(max(0.1, poll_interval_seconds), max(0.0, deadline - time.monotonic()))
+                    if sleep_for > 0:
+                        time.sleep(sleep_for)
+
             if not report_data:
-                try:
-                    report_data = scan_resp.json()
-                except Exception:
-                    report_data = {}
+                reason = last_report_error or "MobSF report was unavailable after polling"
+                status_value = "timed_out" if time.monotonic() >= deadline else "unavailable"
+                logger.warning("MOBSF: %s", reason)
+                return {
+                    "source": "mobsf",
+                    "status": status_value,
+                    "reason": reason,
+                    "available": False,
+                    "error": reason,
+                    "hash": apk_hash,
+                    "report_http_status": last_report_status,
+                }
 
             # ── 4. Normalize Technical Evidence ──────────────────────────────
             normalized = _normalize_mobsf_report(report_data, apk_hash)

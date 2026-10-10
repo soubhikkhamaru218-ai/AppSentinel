@@ -495,7 +495,7 @@ function normalizeScanResult(apiRes) {
         confidence: apiRes.confidence || 0.75,
         vectorCount: apiRes.input_coverage?.supplied_count || apiRes.vector_count || 1,
         findingsCount: apiRes.findings_count || rawFindings.length,
-        triggeredRules: (apiRes.correlation?.triggered_rules || apiRes.triggered_rules || []).map(r => r.code || r),
+        triggeredRules: (apiRes.correlation?.triggered_rules || apiRes.triggered_rules || []).map(r => r.id || r.code || r),
         inputs: apiRes.inputs || {},
         evidenceChain: rawChain,
         explanation: summary,
@@ -552,89 +552,55 @@ function handleScanSubmit(event, mode) {
     const errCard = document.getElementById('pipelineErrorCard');
     if (errCard) errCard.style.display = 'none';
 
-    // Trigger API in parallel
+    // Trigger API and render only request-level progress until the backend
+    // returns authoritative analyzer statuses.
     const apiPromise = fetchScanFromApi(mode, { message, identity, url, apk });
 
-    // Build dynamic pipeline steps based on mode
-    const stepsConfig = buildPipelineSteps(mode, { message, identity, url, apk });
-    renderPipelineSteps(stepsConfig);
+    renderPipelineSteps([{ label: 'BACKEND ANALYSIS', status: 'running', reason: 'Request submitted to AppSentinel backend' }]);
     switchView('pipeline');
 
-    // Run animated pipeline
     const logEl = document.getElementById('pipelineLogOutput');
     const timerEl = document.getElementById('pipelineTimer');
-    logEl.innerHTML = '';
+    logEl.innerHTML = `<span>[REQUEST] Submitted ${escapeHtml(mode.toUpperCase())} scan to backend. Waiting for verified analyzer statuses...</span><br>`;
     const start = performance.now();
     const timerInterval = setInterval(() => {
         timerEl.textContent = `T+ ${((performance.now() - start) / 1000).toFixed(2)}s`;
     }, 100);
 
-    let idx = 0;
-    function runStep() {
-        if (idx < stepsConfig.length) {
-            stepsConfig.forEach((s, i) => {
-                const el = document.getElementById(`pipeStep${i}`);
-                if (!el) return;
-                if (i < idx) el.className = 'pipe-step completed';
-                else if (i === idx) el.className = 'pipe-step running';
-                else el.className = 'pipe-step pending';
-            });
-            logEl.innerHTML += stepsConfig[idx].log + '<br>';
-            logEl.scrollTop = logEl.scrollHeight;
-            idx++;
-            setTimeout(runStep, 450);
-        } else {
-            logEl.innerHTML += `<span style="color:var(--accent);">[AI_EXPLAINER] Awaiting verified backend analysis & intelligence synthesis...</span><br>`;
+    (async () => {
+        try {
+            const apiData = await apiPromise;
+            clearInterval(timerInterval);
+
+            renderBackendPipeline(apiData.pipeline || []);
+            logEl.innerHTML += `<span style="color:#00ff88; font-weight:bold;">[ANALYSIS COMPLETE] Backend response received.</span><br>`;
             logEl.scrollTop = logEl.scrollHeight;
 
-            (async () => {
-                try {
-                    const apiData = await apiPromise;
-                    clearInterval(timerInterval);
+            const result = normalizeScanResult(apiData);
+            result.isDemo = false;
+            currentScanData = result;
 
-                    // Mark all steps complete
-                    stepsConfig.forEach((_, i) => {
-                        const el = document.getElementById(`pipeStep${i}`);
-                        if (el) el.className = 'pipe-step completed';
-                    });
+            setTimeout(() => {
+                renderReport(result);
+                switchView('report');
+            }, 400);
 
-                    logEl.innerHTML += `<span style="color:#00ff88; font-weight:bold;">[ANALYSIS COMPLETE] Verified scan results received!</span><br>`;
-                    logEl.scrollTop = logEl.scrollHeight;
+        } catch (err) {
+            clearInterval(timerInterval);
 
-                    const result = normalizeScanResult(apiData);
-                    result.isDemo = false;
-                    currentScanData = result;
+            renderPipelineSteps([{ label: 'BACKEND ANALYSIS', status: 'failed', reason: err.message }]);
+            logEl.innerHTML += `<span style="color:var(--destructive); font-weight:bold;">[SCAN FAILED] ${escapeHtml(err.message)}</span><br>`;
+            logEl.scrollTop = logEl.scrollHeight;
 
-                    setTimeout(() => {
-                        renderReport(result);
-                        switchView('report');
-                    }, 400);
-
-                } catch (err) {
-                    clearInterval(timerInterval);
-
-                    // Mark current and pending steps as failed
-                    stepsConfig.forEach((_, i) => {
-                        const el = document.getElementById(`pipeStep${i}`);
-                        if (el && i >= idx - 1) el.className = 'pipe-step failed';
-                    });
-
-                    logEl.innerHTML += `<span style="color:var(--destructive); font-weight:bold;">[SCAN FAILED] ${escapeHtml(err.message)}</span><br>`;
-                    logEl.scrollTop = logEl.scrollHeight;
-
-                    // Display informative error card with retry and edit actions
-                    if (errCard) {
-                        const titleEl = document.getElementById('pipelineErrorTitle');
-                        const msgEl = document.getElementById('pipelineErrorMessage');
-                        if (titleEl) titleEl.textContent = `Scan Execution Failed (${mode.toUpperCase()})`;
-                        if (msgEl) msgEl.textContent = err.message;
-                        errCard.style.display = 'block';
-                    }
-                }
-            })();
+            if (errCard) {
+                const titleEl = document.getElementById('pipelineErrorTitle');
+                const msgEl = document.getElementById('pipelineErrorMessage');
+                if (titleEl) titleEl.textContent = `Scan Execution Failed (${mode.toUpperCase()})`;
+                if (msgEl) msgEl.textContent = err.message;
+                errCard.style.display = 'block';
+            }
         }
-    }
-    setTimeout(runStep, 250);
+    })();
 }
 
 function retryLastScan() {
@@ -663,31 +629,40 @@ function runExplicitDemoSimulation() {
     switchView('report');
 }
 
-function buildPipelineSteps(mode, data) {
-    const steps = [];
-    if (mode === 'message' || data.message) {
-        steps.push({ label: 'MESSAGE ANALYZER', log: `[${(steps.length * 0.4 + 0.35).toFixed(2)}s] MESSAGE_ANALYZER: Normalizing tokens... Found ${countKw(data.message)} indicators.` });
-    }
-    if (mode === 'url' || data.url) {
-        steps.push({ label: 'URL REPUTATION', log: `[${(steps.length * 0.4 + 0.35).toFixed(2)}s] URL_ANALYZER: Parsing '${extractDomain(data.url)}'... Querying reputation.` });
-    }
-    if (mode === 'apk' || data.apk) {
-        steps.push({ label: 'APK INSPECTOR', log: `[${(steps.length * 0.4 + 0.35).toFixed(2)}s] APK_INSPECTOR: Androguard DEX parse (${data.apk?.name || 'package.apk'}). Permissions: ${(data.apk?.permissions || []).join(', ')}.` });
-    }
-    steps.push({ label: 'CORRELATION (R1-R7)', log: `[${(steps.length * 0.4 + 0.35).toFixed(2)}s] CORRELATION_ENGINE: Cross-verifying '${data.identity || 'None'}' against evidence. Rules R1-R7...` });
-    steps.push({ label: 'AI EXPLAINER', log: `[${(steps.length * 0.4 + 0.35).toFixed(2)}s] AI_EXPLAINER: Synthesizing reasoning & defensive protocols.` });
-    return steps;
-}
-
 function renderPipelineSteps(steps) {
     const container = document.getElementById('pipelineStepsContainer');
     if (!container) return;
     container.innerHTML = steps.map((s, i) => `
-        <div class="pipe-step pending" id="pipeStep${i}">
+        <div class="pipe-step ${pipelineClassForStatus(s.status || 'pending')}" id="pipeStep${i}">
             <div style="font-weight: 700; margin-bottom: 0.25rem;">PHASE 0${i + 1}</div>
-            <div>${s.label}</div>
+            <div>${escapeHtml(s.label || s.name || 'ANALYZER')}</div>
+            ${s.reason ? `<div style="font-size:0.75rem; color:var(--muted-foreground); margin-top:0.25rem;">${escapeHtml(s.reason)}</div>` : ''}
         </div>
     `).join('');
+}
+
+function renderBackendPipeline(pipeline) {
+    const steps = pipeline.length
+        ? pipeline.map(step => ({ label: step.name, status: step.status, reason: step.reason || '' }))
+        : [{ label: 'BACKEND ANALYSIS', status: 'completed', reason: 'No detailed pipeline returned' }];
+    renderPipelineSteps(steps);
+
+    const logEl = document.getElementById('pipelineLogOutput');
+    if (!logEl) return;
+    steps.forEach(step => {
+        const status = String(step.status || 'unknown').toUpperCase();
+        const reason = step.reason ? ` // ${escapeHtml(step.reason)}` : '';
+        logEl.innerHTML += `<span>[${escapeHtml(step.label)}] ${escapeHtml(status)}${reason}</span><br>`;
+    });
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+function pipelineClassForStatus(status) {
+    const normalized = String(status || '').toLowerCase();
+    if (normalized === 'completed') return 'completed';
+    if (normalized === 'failed' || normalized === 'timed_out') return 'failed';
+    if (normalized === 'running') return 'running';
+    return 'pending';
 }
 
 // ─── 10. CORRELATION ENGINE (R1–R7) ────────────────────────────────────────
@@ -866,12 +841,19 @@ function renderReport(d) {
     const urlStatus = (analyzers.url?.status || (hasUrl ? 'completed' : 'skipped')).toUpperCase();
     const msgStatus = (analyzers.message?.status || (hasMsg ? 'completed' : 'skipped')).toUpperCase();
     const androStatus = (analyzers.androguard?.status || (hasApk ? 'completed' : 'skipped')).toUpperCase();
-    const mobsfStatus = (analyzers.mobsf?.status || (hasApk ? 'docker' : 'skipped')).toUpperCase();
+    const mobsfStatus = (analyzers.mobsf?.status || (hasApk ? 'unknown' : 'skipped')).toUpperCase();
 
     updateChip('chipUrlScanner', 'chipUrlStatus', hasUrl, urlStatus, urlStatus === 'SUSPICIOUS', urlStatus === 'FAILED');
     updateChip('chipMsgScanner', 'chipMsgStatus', hasMsg, msgStatus, false, msgStatus === 'FAILED');
     updateChip('chipAndroguard', 'chipAndroStatus', hasApk, androStatus === 'COMPLETED' ? 'ACTIVE // ANDROGUARD PARSER' : androStatus, false, androStatus === 'FAILED');
-    updateChip('chipMobSF', 'chipMobsfStatus', hasApk && mobsfStatus !== 'SKIPPED', mobsfStatus === 'UNAVAILABLE' ? 'OFFLINE // STANDBY' : mobsfStatus, mobsfStatus === 'UNAVAILABLE', mobsfStatus === 'FAILED');
+    updateChip(
+        'chipMobSF',
+        'chipMobsfStatus',
+        hasApk && mobsfStatus !== 'SKIPPED',
+        mobsfStatus === 'UNAVAILABLE' ? 'OFFLINE // STANDBY' : mobsfStatus,
+        ['UNAVAILABLE', 'NOT_CONFIGURED', 'TIMED_OUT', 'UNKNOWN'].includes(mobsfStatus),
+        mobsfStatus === 'FAILED'
+    );
 
     setText('aiHeadline', ai?.headline || d.explanation || 'Verification Complete');
     setText('aiSummary', ai?.summary || d.explanation || 'No summary available.');
@@ -1071,7 +1053,4 @@ function toggleSimSignal(sig) {
 function extractDomain(u) {
     try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname; }
     catch { return u || ''; }
-}
-function countKw(s) {
-    return ['urgent', 'blocked', 'otp', 'install', 'apk', 'bank', 'fee', 'click'].filter(k => (s || '').toLowerCase().includes(k)).length;
 }

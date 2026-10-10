@@ -9,17 +9,22 @@ services:
     container_name: appsentinel-mobsf
     restart: unless-stopped
     ports:
-      # Maps host port 8001 (or $MOBSF_PORT) to container port 8000 to avoid port conflict
-      # with AppSentinel backend which defaults to port 8000.
-      - "${MOBSF_PORT:-8001}:8000"
+      # Local helper access only. The root compose file keeps MobSF private on
+      # the Docker network and does not publish this port.
+      - "127.0.0.1:${MOBSF_PORT:-8001}:8000"
     environment:
-      # Static API key configured for AppSentinel to communicate with MobSF REST API
-      - MOBSF_API_KEY=${MOBSF_API_KEY:-appsentinel-local-mobsf-key}
+      - MOBSF_API_KEY=${MOBSF_API_KEY:?Set MOBSF_API_KEY to a strong random value before starting MobSF}
       - MOBSF_ANALYZER_IDENTIFIER=appsentinel
+    volumes:
+      - mobsf_data:/root/.MobSF
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  mobsf_data:
+    driver: local
 
