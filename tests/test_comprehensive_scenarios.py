@@ -258,8 +258,8 @@ class TestComprehensiveScenarios(unittest.IsolatedAsyncioTestCase):
         self.assertIn("R1", res.triggered_rules)
         self.assertIn("R2", res.triggered_rules)
 
-    async def test_ai_receives_raw_scanner_outputs(self):
-        """AI explanation receives raw MobSF, Androguard, URL analyzer, and urlscan evidence."""
+    async def test_ai_receives_scanner_evidence_without_provider_payload_blobs(self):
+        """AI receives normalized scanner evidence without duplicated raw provider bodies."""
         with tempfile.NamedTemporaryFile(suffix=".apk", delete=False) as f:
             f.write(b"placeholder apk bytes")
             apk_path = Path(f.name)
@@ -316,8 +316,13 @@ class TestComprehensiveScenarios(unittest.IsolatedAsyncioTestCase):
                 ai_payload = mock_ai.await_args.kwargs["normalized_evidence"]
                 raw_outputs = ai_payload["raw_analyzer_outputs"]
 
-                self.assertEqual(raw_outputs["mobsf"]["raw_report"], mobsf_result["raw_report"])
-                self.assertEqual(raw_outputs["urlscan"]["raw_response"], urlscan_result["raw_response"])
+                self.assertEqual(raw_outputs["mobsf"]["security_score"], mobsf_result["security_score"])
+                self.assertEqual(raw_outputs["mobsf"]["dangerous_permissions"], mobsf_result["dangerous_permissions"])
+                self.assertEqual(raw_outputs["urlscan"]["verdict"], urlscan_result["verdict"])
+                self.assertNotIn("raw_report", raw_outputs["mobsf"])
+                self.assertNotIn("raw_response", raw_outputs["urlscan"])
+                self.assertNotIn("raw_report", ai_payload["normalized_evidence"]["mobsf"])
+                self.assertNotIn("raw_response", ai_payload["normalized_evidence"]["urlscan"])
                 self.assertEqual(raw_outputs["androguard"]["certificate_info"], apk_result.certificate_info)
                 self.assertIn("raw_parse", raw_outputs["url_analyzer"])
                 self.assertIn("ai_evidence_package", res.schema_output)

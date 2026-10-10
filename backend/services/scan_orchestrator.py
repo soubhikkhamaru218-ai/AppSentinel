@@ -496,10 +496,23 @@ def _build_ai_evidence_package(
     }
 
     return {
-        "normalized_evidence": analyzers_output,
-        "raw_analyzer_outputs": raw_outputs,
+        "normalized_evidence": _strip_provider_payload_blobs(analyzers_output),
+        "raw_analyzer_outputs": _strip_provider_payload_blobs(raw_outputs),
         "ai_instruction_boundary": (
-            "Use raw_analyzer_outputs only as evidence to explain. "
+            "Use the supplied analyzer evidence only to explain. "
             "Do not override the deterministic correlation verdict."
         ),
     }
+
+
+def _strip_provider_payload_blobs(value: Any) -> Any:
+    """Keep normalized evidence while excluding duplicated provider response bodies."""
+    if isinstance(value, dict):
+        return {
+            key: _strip_provider_payload_blobs(item)
+            for key, item in value.items()
+            if key not in {"raw_report", "raw_response"}
+        }
+    if isinstance(value, list):
+        return [_strip_provider_payload_blobs(item) for item in value]
+    return value

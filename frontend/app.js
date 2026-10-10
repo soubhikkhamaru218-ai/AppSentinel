@@ -461,13 +461,6 @@ function normalizeScanResult(apiRes) {
         ? apiRes.actions.avoid
         : (apiRes.ai?.avoid_actions || []);
 
-    const rawFindings = (apiRes.correlation?.findings || []).map(f => ({
-        finding: f.title || f.finding || f.name || 'Security Finding',
-        explanation: f.description || f.desc || f.detail || '',
-        severity: (f.severity || 'medium').toLowerCase(),
-        evidence_source: f.source || 'correlation'
-    }));
-
     const rawChain = (apiRes.correlation?.evidence_chain || apiRes.evidence_chain || []).map(item => ({
         node: item.node || item.title || 'Evidence Indicator',
         desc: item.desc || item.description || '',
@@ -475,12 +468,33 @@ function normalizeScanResult(apiRes) {
         severity: item.severity || 'info'
     }));
 
+    const rawFindings = rawChain.length
+        ? rawChain.map(item => ({
+            finding: item.node.replace(/^MobSF:\s*/, ''),
+            explanation: item.desc,
+            severity: item.severity.toLowerCase(),
+            evidence_source: item.rule === 'MOBSF' ? 'mobsf' : 'correlation'
+        }))
+        : (apiRes.correlation?.findings || []).map(f => ({
+            finding: typeof f === 'string' ? f : (f.title || f.finding || f.name || 'Security Finding'),
+            explanation: typeof f === 'string' ? f : (f.description || f.desc || f.detail || ''),
+            severity: (typeof f === 'object' && f.severity ? f.severity : 'medium').toLowerCase(),
+            evidence_source: typeof f === 'object' && f.source ? f.source : 'correlation'
+        }));
+
     const ai = apiRes.ai || {};
     const aiLegacy = apiRes.ai_explanation || {};
     const isAiOnline = ai.status === 'completed' || Boolean(aiLegacy.ai_available);
+    const mobsfFindingCount = apiRes.analyzers?.mobsf?.security_findings?.length || 0;
+    const aiUnavailableSummary = /429|quota|resource_exhausted/i.test(ai.reason || '')
+        ? 'Gemini quota exceeded; no AI explanation was generated.'
+        : 'AI explanation unavailable; deterministic scanner results are shown.';
 
     const headline = aiLegacy.headline || `${verdictLabel} // Verified Threat Assessment`;
-    const summary = ai.summary || aiLegacy.summary || apiRes.explanation || 'Verification complete.';
+    const fallbackSummary = ai.status === 'unavailable'
+        ? `${aiUnavailableSummary} ${apiRes.explanation || 'The deterministic correlation engine completed its assessment.'}${mobsfFindingCount ? ` MobSF also reported ${mobsfFindingCount} technical APK security finding${mobsfFindingCount === 1 ? '' : 's'}; review the evidence below. LOW_CONCERN is not a safety certification.` : ''}`
+        : (apiRes.explanation || 'Verification complete.');
+    const summary = ai.summary || aiLegacy.summary || fallbackSummary;
     const whyMatters = Array.isArray(ai.why_it_matters)
         ? ai.why_it_matters.join(' ')
         : (ai.why_it_matters || aiLegacy.why_it_matters || '');
@@ -505,6 +519,8 @@ function normalizeScanResult(apiRes) {
         pipeline: apiRes.pipeline || [],
         aiExplanation: {
             ai_available: isAiOnline,
+            ai_status: ai.status || (aiLegacy.ai_available ? 'completed' : 'unavailable'),
+            ai_reason: ai.reason || '',
             headline: headline,
             summary: summary,
             why_it_matters: whyMatters,
@@ -806,6 +822,8 @@ function renderReport(d) {
     // ─── AI EXPLANATION RENDERING ───
     const ai = d.aiExplanation;
     const aiBadge = document.getElementById('aiBadge');
+    const aiTitle = document.querySelector('.ai-intel-title');
+    const aiSubtitle = document.querySelector('.ai-intel-subtitle');
     if (aiBadge) {
         if (d.isDemo) {
             aiBadge.textContent = 'AI EXPLANATION // SIMULATION ENGINE (OFFLINE)';
@@ -816,11 +834,18 @@ function renderReport(d) {
             aiBadge.style.borderColor = 'var(--accent)';
             aiBadge.style.color = 'var(--accent)';
         } else {
-            aiBadge.textContent = 'AI EXPLANATION // CORRELATION ENGINE';
-            aiBadge.style.borderColor = 'var(--accent-secondary)';
-            aiBadge.style.color = 'var(--accent-secondary)';
+            const quotaExceeded = /429|quota|resource_exhausted/i.test(ai?.ai_reason || '');
+            aiBadge.textContent = quotaExceeded ? 'GEMINI UNAVAILABLE // QUOTA EXCEEDED' : 'GEMINI UNAVAILABLE // DETERMINISTIC FALLBACK';
+            aiBadge.style.borderColor = 'var(--warning)';
+            aiBadge.style.color = 'var(--warning)';
         }
     }
+    if (aiTitle) aiTitle.textContent = ai?.ai_available
+        ? 'REAL-TIME AI INTELLIGENCE EXPLANATION'
+        : 'DETERMINISTIC ANALYSIS // AI EXPLANATION UNAVAILABLE';
+    if (aiSubtitle) aiSubtitle.textContent = ai?.ai_available
+        ? 'Synthesized from available scanner evidence; the deterministic correlation engine sets the verdict.'
+        : 'Scanner evidence and rule-engine results are shown below; no AI-generated explanation was returned.';
 
     // ─── MULTI-VECTOR TELEMETRY STRIP ───
     const analyzers = d.analyzers || {};
@@ -857,8 +882,13 @@ function renderReport(d) {
 
     setText('aiHeadline', ai?.headline || d.explanation || 'Verification Complete');
     setText('aiSummary', ai?.summary || d.explanation || 'No summary available.');
-    setText('aiWhyReason', ai?.why_this_result ? `Verdict Rationale: ${ai.why_this_result}` : `AppSentinel reached this verdict by correlating signals across message, domain, and package vectors.`);
-    setText('aiConfidenceNote', ai?.confidence_explanation ? `Certainty Context: ${ai.confidence_explanation}` : `Confidence is based on the quality and breadth of analyzed indicators.`);
+    const verdictRationale = ai?.ai_available
+        ? (ai.why_this_result || 'The deterministic engine correlated the available evidence.')
+        : `No R1-R7 scam/coercion rules fired. MobSF reported ${(d.analyzers?.mobsf?.security_findings || []).length} technical APK finding(s); LOW_CONCERN does not certify the APK as safe.`;
+    setText('aiWhyReason', `Verdict Rationale: ${verdictRationale}`);
+    setText('aiConfidenceNote', ai?.ai_available
+        ? `Certainty Context: ${ai.confidence_explanation}`
+        : `Deterministic engine confidence: ${Math.round(d.confidence * 100)}%. ${ai?.ai_reason && /429|quota|resource_exhausted/i.test(ai.ai_reason) ? 'Gemini quota exceeded.' : 'AI explanation unavailable.'}`);
 
     // ─── JARGON DECODER (PLAIN-LANGUAGE EXPLANATIONS) ───
     const jargonSec = document.getElementById('aiJargonSection');
